@@ -675,11 +675,22 @@ def do_request(media_type, id):
     elif status in [2, 3, 4]:
         if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
             return
-    
+    seasons_to_request = []
+    tv_request_types = ["Request this season", "Request all seasons"]
+    if media_type == "tv":    
+     selected_tv_request_type = xbmcgui.Dialog().select("Seerr Request", tv_request_types)
+     if selected_tv_request_type < 0:
+         return
+     elif selected_tv_request_type == 0:
+         season = args.get("season")
+         if season:
+             seasons_to_request = [int(season)]
+         #TODO ERROR
+     else:
+         seasons_to_request = "all"
     is4k = False
     quality_profile = None
-    seasons_to_request = "all"
-    
+
     if enable_ask_4k:
         prefs = load_preferences()
         if addon.getSettingBool('remember_last_quality') and 'last_4k_choice' in prefs:
@@ -700,16 +711,7 @@ def do_request(media_type, id):
             if selected >= 0:
                 quality_profile = profiles[selected][0]
     
-    if media_type == "tv" and addon.getSettingBool('enable_season_selection'):
-        tv_data = api_client.client.api_request(f"/tv/{id}")
-        if tv_data and tv_data.get('seasons'):
-            seasons = tv_data['seasons']
-            season_names = ['All Seasons'] + [f"Season {s.get('seasonNumber', 0)}" for s in seasons]
-            selected = xbmcgui.Dialog().select('Select Seasons', season_names)
-            if selected > 0:
-                seasons_to_request = [seasons[selected - 1].get('seasonNumber')]
-            elif selected < 0:
-                return
+
     
     if addon.getSettingBool('confirm_before_request'):
         title_data = api_client.client.api_request(f"/{media_type}/{id}")
