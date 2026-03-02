@@ -92,7 +92,6 @@ def save_preferences(prefs):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Preferences save error: {e}", xbmc.LOGERROR)
 
-load_cache()
 
 def build_url(query):
     return base_url + '?' + urllib.parse.urlencode(query)
@@ -280,15 +279,6 @@ def list_main_menu():
     xbmcplugin.setContent(addon_handle, 'files')
     
     items = [
-        ('trending', 'Trending', 'DefaultMovies.png', True),
-        ('popular_movies', 'Popular Movies', 'DefaultMovies.png', True),
-        ('popular_tv', 'Popular TV Shows', 'DefaultTVShows.png', True),
-        ('upcoming_movies', 'Upcoming Movies', 'DefaultMovies.png', True),
-        ('upcoming_tv', 'Upcoming TV Shows', 'DefaultTVShows.png', True),
-        (None, None, None, False),
-        ('genres_movie', 'Movies by Genre', 'DefaultGenre.png', True),
-        ('genres_tv', 'TV Shows by Genre', 'DefaultGenre.png', True),
-        (None, None, None, False),
         ('recently_added', 'Recently Added', 'DefaultRecentlyAddedMovies.png', True),
         ('collections', 'Collections', 'DefaultSets.png', True),
         (None, None, None, False),
@@ -665,6 +655,7 @@ def get_quality_profiles():
         xbmc.log(f"[KodiSeerr] Quality profiles error: {e}", xbmc.LOGERROR)
     return []
 
+
 def do_request(media_type, id):
     """Handle media request with advanced options"""
     # Check if already requested/available
@@ -721,6 +712,7 @@ def do_request(media_type, id):
             msg += " in 4K"
         msg += "?"
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
+            xbmc.executebuiltin("Action(Back)")
             return
     
     payload = {
@@ -746,6 +738,13 @@ def do_request(media_type, id):
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
     
     xbmc.executebuiltin("Action(Back)")
+def do_request_as_player(media_type, id):
+    #immediately tell kodi that we are done with playback, this prevents time outs
+    item = xbmcgui.ListItem()
+    item.setProperty('IsPlayable', 'true')
+    item.setMimeType('audio/mpeg')
+    xbmcplugin.setResolvedUrl(addon_handle, False, item)
+    do_request(media_type, id)
 
 def cancel_request(request_id):
     """Cancel a pending request"""
@@ -985,7 +984,7 @@ def search():
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
     xbmcplugin.endOfDirectory(addon_handle)
-
+load_cache()
 mode = args.get('mode')
 page = args.get('page')
 if not page:
@@ -1024,68 +1023,10 @@ elif mode == "collection_details":
     show_collection_details(args.get('collection_id'))
 elif mode == "recently_added":
     list_recently_added()
-elif mode == "trending":
-    cache_key = f"trending_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request("/discover/trending", params={"page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch trending", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-elif mode == "popular_movies":
-    cache_key = f"popular_movies_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request("/discover/movies", params={"sortBy": "popularity.desc", "page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch popular movies", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-elif mode == "popular_tv":
-    cache_key = f"popular_tv_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request("/discover/tv", params={"sortBy": "popularity.desc", "page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch popular TV shows", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-elif mode == "upcoming_movies":
-    cache_key = f"upcoming_movies_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request("/discover/movies/upcoming", params={"page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch upcoming movies", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-elif mode == "upcoming_tv":
-    cache_key = f"upcoming_tv_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request("/discover/tv/upcoming", params={"page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch upcoming TV shows", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
 elif mode == "search":
     search()
+elif mode == "playerrequest":
+    do_request_as_player(args.get('type'), args.get('id'))
 elif mode == "request":
     do_request(args.get('type'), args.get('id'))
 elif mode == "requests":
@@ -1097,23 +1038,4 @@ elif mode == "requests":
     else:
         xbmcgui.Dialog().notification("Kodiseerr", "Failed to fetch requests", xbmcgui.NOTIFICATION_ERROR)
         xbmcplugin.endOfDirectory(addon_handle)
-elif mode == "tvshow" and args.get("id"):
-    list_seasons(args.get("id"))
-elif mode == "season" and args.get("tv_id") and args.get("season"):
-    list_episodes(args.get("tv_id"), int(args.get("season")))
-elif mode == "genres" and args.get("media_type"):
-    list_genres(args.get("media_type"))
-elif mode == "genre" and args.get("display_type") and args.get("genre_id"):
-    display_type = args.get("display_type")
-    genre_id = args.get("genre_id")
-    cache_key = f"genre_{display_type}_{genre_id}_{page}"
-    data = get_cached(cache_key)
-    if not data:
-        data = api_client.client.api_request(f"/discover/{display_type}/genre/{genre_id}", params={"page": page})
-        if data:
-            set_cached(cache_key, data)
-    if data:
-        list_items(data, mode, display_type, genre_id)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch genre items", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle) 
+        
