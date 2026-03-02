@@ -936,13 +936,18 @@ def list_episodes(tv_id, season_number):
 
 def search():
     xbmcplugin.setContent(addon_handle, 'videos')
-    keyboard = xbmcgui.Dialog().input('Search for Movie or TV Show')
-    if keyboard:
-        cache_key = f"search_{keyboard}"
+    search_array = args.get("query")
+    if search_array is None:
+       search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
+    else:
+       search_string = search_array[0]
+    xbmcgui.Dialog().notification("Debug", search_string)   
+    if search_string:
+        cache_key = f"search_{search_string}"
         data = get_cached(cache_key)
         
         if not data:
-            data = api_client.client.api_request('/search', params={'query': keyboard})
+            data = api_client.client.api_request('/search', params={'query': search_string})
             if data:
                 set_cached(cache_key, data)
         
