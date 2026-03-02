@@ -940,8 +940,7 @@ def search():
     if search_array is None:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     else:
-       search_string = search_array[0]
-    xbmcgui.Dialog().notification("Debug", search_string)   
+       search_string = search_array[0]  
     if search_string:
         cache_key = f"search_{search_string}"
         data = get_cached(cache_key)
@@ -1115,4 +1114,4 @@ elif mode == "genre" and args.get("display_type") and args.get("genre_id"):
         list_items(data, mode, display_type, genre_id)
     else:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch genre items", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
+        xbmcplugin.endOfDirectory(addon_handle) 
