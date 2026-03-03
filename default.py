@@ -10,13 +10,18 @@ import os
 import time
 from create_client import create_client
 from jellyseerr_api import JellyseerrClient
-#from radarr_api import RadarrClient
+from radarr_api import RadarrClient
+from sonarr_api import SonarrClient
 
 addon = xbmcaddon.Addon()
 addon_handle = int(sys.argv[1])
 base_url = sys.argv[0]
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
+radarr_client = create_client(RadarrClient)
+sonarr_client = create_client(SonarrClient)
+
+
 
 image_base = "https://image.tmdb.org/t/p/w500"
 enable_ask_4k = addon.getSettingBool('enable_ask_4k')
@@ -219,7 +224,6 @@ def get_media_status(media_type, media_id):
     cached = get_cached(cache_key)
     if cached is not None:
         return cached
-    
     try:
         data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
         if data and data.get('mediaInfo'):
@@ -741,6 +745,7 @@ def do_request(media_type, id):
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
     
     xbmc.executebuiltin("Action(Back)")
+
 def do_request_as_player(media_type, id):
     #immediately tell kodi that we are done with playback, this prevents time outs
     item = xbmcgui.ListItem()
@@ -782,38 +787,74 @@ def show_requests(data, mode, current_page):
         prev_page_url = build_url({'mode': mode, 'page': current_page - 1})
         prev_item = xbmcgui.ListItem(label=f'[B]<< Previous Page ({current_page - 1})[/B]')
         prev_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-        xbmcplugin.addDirectoryItem(addon_handle, prev_page_url, prev_item, True)
+
+    requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
+    for item in requestData_radarr:
+        movieId = item.get("movieId")
+        tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
+        item.update({"tmdbId" : tmdbId})
+    requestData_sonarr = sonarr_client.api_request(f"/queue").get("records")
+    xbmc.log(f"DEBUG KODISEERR: Queue Inhalt sonarr: {requestData_sonarr}", level=xbmc.LOGERROR)
+    foundSeriesIds = []
+    requestData_sonarr_series = []
+    for item in requestData_sonarr:
+        seriesId = item.get("seriesId")
+        if seriesId not in foundSeriesIds:
+         foundSeriesIds.append(seriesId)
+         tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
+         item.update({"tmdbId" : tmdbId})
+         requestData_sonarr_series.append(item)
 
     for item in items:
         media = item.get('media', {})
         id = media.get('tmdbId')
+        size = None
+        sizeleft = None
+        arr_status = ""
+        timeleft = ""
+        seer_status = media.get('status')
+        if seer_status in [2,3]:
+         for item in requestData_radarr + requestData_sonarr_series:
+          if item.get("tmdbId") == id:
+             try:
+                 size = float(item.get("size"))/(1024**3)
+                 sizeleft = float(item.get("sizeleft"))/(1024**3)
+                 arr_status = item.get("status")
+                 timeleft = item.get("timeleft")
+             except:
+                 continue
         media_type = media.get('mediaType')
         request_id = item.get('id')
-        
         mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
         if not mediaData:
             continue
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
-
-        status = media.get('status')
-        if status == 2:
+        plot_text = ""
+        if seer_status == 2:
             label_text += " [COLOR yellow](Pending)[/COLOR]"
-        elif status == 3:
+        elif seer_status == 3:
             label_text += " [COLOR cyan](Processing)[/COLOR]"
-        elif status == 4:
+            label_text += f" Status: {arr_status}"
+            plot_text += f" Status: {arr_status},"
+            if arr_status == "downloading":
+                            plot_text += f" Time left: {timeleft} h,"
+                            if size is not None and sizeleft is not None:
+                                sizedone =  size - sizeleft
+                                plot_text += f" {sizedone:.1f} GB / {size:.1f} GB"
+        elif seer_status == 4:
             label_text += " [COLOR lime](Partially Available)[/COLOR]"
-        elif status == 5:
+        elif seer_status == 5:
             label_text += " [COLOR lime](Available)[/COLOR]"
 
         context_menu = []
-        if status in [2, 3]:
+        if seer_status in [2, 3]:
             context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
 
         url = build_url({'mode': 'request', 'type': media_type, 'id': id})
         list_item = xbmcgui.ListItem(label=label_text)
         list_item.addContextMenuItems(context_menu)
-        info = {'title': label_text, 'plot': f"Media ID: {id}, Type: {media_type}"}
+        info = {'title': label_text, 'plot': plot_text}
         set_info_tag(list_item, info)
         art = make_art(mediaData)
         list_item.setArt(art)
