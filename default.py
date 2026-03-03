@@ -711,7 +711,6 @@ def do_request(media_type, id):
                 quality_profile = profiles[selected][0]
     
 
-    
     if addon.getSettingBool('confirm_before_request'):
         title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
         title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
@@ -752,7 +751,10 @@ def do_request_as_player(media_type, id):
     item.setProperty('IsPlayable', 'true')
     item.setMimeType('audio/mpeg')
     xbmcplugin.setResolvedUrl(addon_handle, False, item)
-    url = build_url({'mode': 'request', 'type': media_type, 'id': id})
+    season = "all"
+    if args.get("season") != None:
+        season = args.get("season")
+    url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season})
     xbmc.executebuiltin(f'RunPlugin({url})')
 
 def cancel_request(request_id):
