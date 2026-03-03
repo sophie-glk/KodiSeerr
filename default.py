@@ -8,12 +8,15 @@ import urllib.parse
 import json
 import os
 import time
-import api_client
+from create_client import create_client
+from jellyseerr_api import JellyseerrClient
+#from radarr_api import RadarrClient
 
 addon = xbmcaddon.Addon()
 addon_handle = int(sys.argv[1])
 base_url = sys.argv[0]
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
+jellyseer_client = create_client(JellyseerrClient)
 
 image_base = "https://image.tmdb.org/t/p/w500"
 enable_ask_4k = addon.getSettingBool('enable_ask_4k')
@@ -218,7 +221,7 @@ def get_media_status(media_type, media_id):
         return cached
     
     try:
-        data = api_client.client.api_request(f"/{media_type}/{media_id}")
+        data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
         if data and data.get('mediaInfo'):
             status = data['mediaInfo'].get('status', 0)
             set_cached(cache_key, status)
@@ -238,6 +241,7 @@ def get_status_label(status):
     }
     return status_map.get(status, "")
 
+#CHANGE
 def test_connection():
     """Test connection to Jellyseerr server"""
     try:
@@ -314,7 +318,7 @@ def list_genres(media_type):
     data = get_cached(cache_key)
     
     if not data:
-        data = api_client.client.api_request(f"/genres/{media_type}", params={})
+        data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
         if data:
             set_cached(cache_key, data)
     
@@ -341,7 +345,7 @@ def list_collections():
     except:
         page = 1
     
-    data = api_client.client.api_request("/discover/movies", params={"page": page, "sortBy": "popularity.desc"})
+    data = jellyseer_client.api_request("/discover/movies", params={"page": page, "sortBy": "popularity.desc"})
     
     if data:
         items = data.get('results', [])
@@ -365,7 +369,7 @@ def list_collections():
 def show_collection_details(collection_id):
     """Show movies in a collection"""
     xbmcplugin.setContent(addon_handle, 'movies')
-    data = api_client.client.api_request(f"/collection/{collection_id}")
+    data = jellyseer_client.api_request(f"/collection/{collection_id}")
     
     if data:
         parts = data.get('parts', [])
@@ -520,7 +524,7 @@ def jump_to_page():
 
 def show_details(media_type, media_id):
     """Show detailed information about a media item"""
-    data = api_client.client.api_request(f"/{media_type}/{media_id}")
+    data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
     if not data:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch details", xbmcgui.NOTIFICATION_ERROR)
         return
@@ -586,7 +590,7 @@ def list_favorites():
                 media_type = parts[0]
                 media_id = parts[1]
                 
-                data = api_client.client.api_request(f"/{media_type}/{media_id}")
+                data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
                 if data:
                     title = data.get('title') or data.get('name', 'Unknown')
                     label = title
@@ -609,7 +613,7 @@ def list_favorites():
 def show_statistics():
     """Show user statistics"""
     try:
-        requests_data = api_client.client.api_request('/request', params={'take': 1000})
+        requests_data = jellyseer_client.api_request('/request', params={'take': 1000})
         if not requests_data:
             xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
             return
@@ -647,7 +651,7 @@ def get_quality_profiles():
     """Get available quality profiles from server"""
     try:
         # This depends on Jellyseerr API - might need adjustment
-        data = api_client.client.api_request('/settings/radarr')
+        data = jellyseer_client.api_request('/settings/radarr')
         if data and isinstance(data, list) and len(data) > 0:
             profiles = data[0].get('profiles', [])
             return [(p['id'], p['name']) for p in profiles]
@@ -705,14 +709,13 @@ def do_request(media_type, id):
 
     
     if addon.getSettingBool('confirm_before_request'):
-        title_data = api_client.client.api_request(f"/{media_type}/{id}")
+        title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
         title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
         msg = f"Request {title}"
         if is4k:
             msg += " in 4K"
         msg += "?"
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
-            xbmc.executebuiltin("Action(Back)")
             return
     
     payload = {
@@ -728,7 +731,7 @@ def do_request(media_type, id):
         payload["profileId"] = quality_profile
     
     try:
-        api_client.client.api_request("/request", method="POST", data=payload)
+        jellyseer_client.api_request("/request", method="POST", data=payload)
         xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
         cache_key = f"status_{media_type}_{id}"
         if cache_key in cache:
@@ -744,13 +747,14 @@ def do_request_as_player(media_type, id):
     item.setProperty('IsPlayable', 'true')
     item.setMimeType('audio/mpeg')
     xbmcplugin.setResolvedUrl(addon_handle, False, item)
-    do_request(media_type, id)
+    url = build_url({'mode': 'request', 'type': media_type, 'id': id})
+    xbmc.executebuiltin(f'RunPlugin({url})')
 
 def cancel_request(request_id):
     """Cancel a pending request"""
     if xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
         try:
-            api_client.client.api_request(f"/request/{request_id}", method="DELETE")
+            jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
             xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
             xbmc.executebuiltin('Container.Refresh')
         except Exception as e:
@@ -786,7 +790,7 @@ def show_requests(data, mode, current_page):
         media_type = media.get('mediaType')
         request_id = item.get('id')
         
-        mediaData = api_client.client.api_request(f"/{media_type}/{id}", params={})
+        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
         if not mediaData:
             continue
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
@@ -834,8 +838,8 @@ def list_recently_added():
     except:
         page = 1
     
-    recent_movies = api_client.client.api_request("/discover/movies", params={"sortBy": "mediaAdded", "page": page})
-    recent_tv = api_client.client.api_request("/discover/tv", params={"sortBy": "mediaAdded", "page": page})
+    recent_movies = jellyseer_client.api_request("/discover/movies", params={"sortBy": "mediaAdded", "page": page})
+    recent_tv = jellyseer_client.api_request("/discover/tv", params={"sortBy": "mediaAdded", "page": page})
     
     all_items = []
     if recent_movies:
@@ -881,7 +885,7 @@ def report_issue(media_type, media_id):
             "issueType": selected + 1,
             "message": message or ""
         }
-        api_client.client.api_request(f"/{media_type}/{media_id}/issue", method="POST", data=payload)
+        jellyseer_client.api_request(f"/{media_type}/{media_id}/issue", method="POST", data=payload)
         xbmcgui.Dialog().notification('KodiSeerr', 'Issue reported', xbmcgui.NOTIFICATION_INFO)
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)
@@ -889,7 +893,7 @@ def report_issue(media_type, media_id):
 
 def list_seasons(tv_id):
     xbmcplugin.setContent(addon_handle, 'seasons')
-    data = api_client.client.api_request(f"/tv/{tv_id}")
+    data = jellyseer_client.api_request(f"/tv/{tv_id}")
     if not data:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch seasons", xbmcgui.NOTIFICATION_ERROR)
         xbmcplugin.endOfDirectory(addon_handle)
@@ -913,7 +917,7 @@ def list_seasons(tv_id):
 
 def list_episodes(tv_id, season_number):
     xbmcplugin.setContent(addon_handle, 'episodes')
-    data = api_client.client.api_request(f"/tv/{tv_id}/season/{season_number}")
+    data = jellyseer_client.api_request(f"/tv/{tv_id}/season/{season_number}")
     if not data:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch episodes", xbmcgui.NOTIFICATION_ERROR)
         xbmcplugin.endOfDirectory(addon_handle)
@@ -947,7 +951,7 @@ def search():
         data = get_cached(cache_key)
         
         if not data:
-            data = api_client.client.api_request('/search', params={'query': search_string})
+            data = jellyseer_client.api_request('/search', params={'query': search_string})
             if data:
                 set_cached(cache_key, data)
         
@@ -1032,7 +1036,7 @@ elif mode == "request":
 elif mode == "requests":
     take = 20
     skip = (page - 1) * take
-    data = api_client.client.api_request("/request", params={"take": take, "skip": skip, "sort": "added", "filter": "all"})
+    data = jellyseer_client.api_request("/request", params={"take": take, "skip": skip, "sort": "added", "filter": "all"})
     if data:
         show_requests(data, mode, page)
     else:

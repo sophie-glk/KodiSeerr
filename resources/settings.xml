@@ -1,15 +1,18 @@
 <settings>
-    <category label="General">
+<category label="General">
+          <setting id="allow_self_signed" type="bool" label="Allow self-signed certificates" default="false" />
+ </category>
+    <category label="Jellyseerr">
         <setting id="jellyseerr_url" type="text" label="Server URL" default="http://localhost:5055" />
-        <setting id="allow_self_signed" type="bool" label="Allow self-signed certificates" default="false" />
-        <setting type="sep" />
-        <setting type="lsep" label="Password Authentication" />
-        <setting id="jellyseerr_username" type="text" label="Username" default="" />
-        <setting id="jellyseerr_password" type="text" option="hidden" label="Password" default="" />
-        <setting type="sep" />
-        <setting type="lsep" label="OR API Token Authentication" />
         <setting id="jellyseerr_api_token" type="text" label="API Token" default="" />
-        <setting id="auth_method" type="enum" label="Use Authentication Method" default="password" values="password|api_token" lvalues="Password|API Token" />
+    </category>
+    <category label="Radarr">
+        <setting id="radarr_url" type="text" label="Server URL" default="http://localhost:7878" />
+        <setting id="radarr_api_token" type="text" label="API Token" default="" />
+    </category>
+      <category label="Sonarr">
+        <setting id="sonarr_url" type="text" label="Server URL" default="http://localhost:8989" />
+        <setting id="sonarr_api_token" type="text" label="API Token" default="" />
     </category>
     <category label="Requests">
         <setting id="enable_ask_4k" type="bool" label="Enable asking for 4K" default="true" />

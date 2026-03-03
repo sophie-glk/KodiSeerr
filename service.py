@@ -3,9 +3,9 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 import json
-import api_client
+from create_client import create_client
 import os
-
+from jellyseerr_api import JellyseerrClient
 addon = xbmcaddon.Addon()
 monitor = xbmc.Monitor()
 
@@ -41,7 +41,7 @@ def main_loop():
     while not monitor.abortRequested():
         if addon.getSettingBool('enable_request_notifications'):
             try:
-                requests_data = api_client.client.api_request('/request')
+                requests_data = create_client(JellyseerrClient).client.api_request('/request')
             except Exception:
                 import traceback
                 traceback.print_exc()
