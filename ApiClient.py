@@ -35,14 +35,16 @@ class ApiClient:
     def api_request(self, endpoint, method="GET", data=None, params=None):
         """Sends an authenticated API request to the server."""
         url = f"{self.endpoint_url}{endpoint}"
+        data_json = ""
         if params:
             safe_params = {k: str(v) for k, v in params.items()}
             url += '?' + urlencode(safe_params, quote_via=quote)
         if data is not None:
-            data = json.dumps(data).encode('utf-8')
-        cache_key = hashlib.sha256(str(url + endpoint + method).encode("utf-8")).hexdigest()
+            data_json = json.dumps(data)
+            data = data_json.encode('utf-8')
+        cache_key = hashlib.sha256(str(url + endpoint + method+ data_json).encode("utf-8")).hexdigest()
         cached = get_cached(cache_key)
-        if cached:
+        if cached is not None:
             return cached
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")

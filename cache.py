@@ -1,6 +1,7 @@
 import xbmcaddon
 import xbmcvfs
 import xbmc
+import xbmcgui
 import xbmcaddon
 import time
 import os
@@ -46,3 +47,22 @@ def set_cached(key, data,  duration=None):
     if addon.getSettingBool('enable_caching'):
         cache[key] = {'data': data, 'timestamp': time.time(), "duration": duration}
         save_cache()
+
+def clear_cache():
+    """Clear all cached data"""
+    global cache
+    try:
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
+        cache = {}
+        xbmcgui.Dialog().notification('KodiSeerr', 'Cache cleared successfully', xbmcgui.NOTIFICATION_INFO, 3000)
+    except Exception as e:
+        xbmc.log(f"[KodiSeerr] Clear cache error: {e}", xbmc.LOGERROR)
+        xbmcgui.Dialog().notification('KodiSeerr', 'Failed to clear cache', xbmcgui.NOTIFICATION_ERROR)
+
+def clean_cache():
+    current_time = time.time()
+    for id, item in cache.items():
+        if current_time - item.get("timestamp", 0) > item.get("duration", 60):
+            del cache[id]
+    save_cache()

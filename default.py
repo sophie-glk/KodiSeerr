@@ -186,15 +186,10 @@ def set_info_tag(list_item, info):
 
 def get_media_status(media_type, media_id):
     """Get the request status for a media item"""
-    cache_key = f"status_{media_type}_{media_id}"
-    cached = get_cached(cache_key)
-    if cached is not None:
-        return cached
     try:
         data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
         if data and data.get('mediaInfo'):
             status = data['mediaInfo'].get('status', 0)
-            set_cached(cache_key, status)
             return status
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Status check error: {e}", xbmc.LOGERROR)
@@ -237,18 +232,6 @@ def test_connection():
         xbmcgui.Dialog().notification('KodiSeerr', f'Error: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 5000)
     xbmc.executebuiltin("Action(Back)")
 
-def clear_cache():
-    """Clear all cached data"""
-    global cache
-    try:
-        if os.path.exists(cache_path):
-            os.remove(cache_path)
-        cache = {}
-        xbmcgui.Dialog().notification('KodiSeerr', 'Cache cleared successfully', xbmcgui.NOTIFICATION_INFO, 3000)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Clear cache error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Failed to clear cache', xbmcgui.NOTIFICATION_ERROR)
-
 def list_main_menu():
     xbmcplugin.setContent(addon_handle, 'files')
     
@@ -284,14 +267,7 @@ def list_main_menu():
 
 def list_genres(media_type):
     xbmcplugin.setContent(addon_handle, 'genres')
-    cache_key = f"genres_{media_type}"
-    data = get_cached(cache_key)
-    
-    if not data:
-        data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
-        if data:
-            set_cached(cache_key, data)
-    
+    data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
     if data:
         for item in data:
             name = item.get('name')
@@ -702,10 +678,6 @@ def do_request(media_type, id):
     try:
         jellyseer_client.api_request("/request", method="POST", data=payload)
         xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
-        cache_key = f"status_{media_type}_{id}"
-        if cache_key in cache:
-            del cache[cache_key]
-            save_cache()
     except Exception as e:
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
     
@@ -826,9 +798,6 @@ def show_requests(data, mode, current_page):
     xbmcplugin.endOfDirectory(addon_handle)    
 
 def get_sonarr_queue_data_series():
-    cached = get_cached("get_sonarr_queue_data_series")
-    if cached:
-        return cached
     requestData_sonarr = sonarr_client.api_request(f"/queue", params={}).get("records")
     foundSeriesIds = []
     requestData_sonarr_series = []
@@ -839,29 +808,21 @@ def get_sonarr_queue_data_series():
          tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
          item.update({"tmdbId" : tmdbId})
          requestData_sonarr_series.append(item)
-    set_cached("get_sonarr_queue_data_series", requestData_sonarr_series, 30)
     return requestData_sonarr_series
 
 def get_radarr_queue_data():
-    cached = get_cached("get_radarr_queue_data")
-    if cached:
-        return cached
     requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
     for item in requestData_radarr:
         movieId = item.get("movieId")
         tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
         item.update({"tmdbId" : tmdbId})
-    set_cached("get_radarr_queue_data", requestData_radarr, 30)
     return requestData_radarr
 
 
 def show_requested_seasons():
     id = args.get("id")
     xbmcplugin.setContent(addon_handle, 'seasons')
-    seer_info = get_cached(f"seer_info_{id}")
-    if not seer_info:
-       seer_info = jellyseer_client.api_request(f"/tv/{id}")
-       set_cached(f"seer_info_{id}", seer_info)
+    seer_info = jellyseer_client.api_request(f"/tv/{id}")
     media_info = seer_info.get("mediaInfo", [])
     seasons = media_info.get("seasons", []) if media_info else []
     xbmc.log(f"DEBUG KODISEERR: Response: {media_info}", level=xbmc.LOGERROR)         
@@ -887,9 +848,6 @@ def show_requested_seasons():
     xbmcplugin.endOfDirectory(addon_handle)
 
 def get_sonarr_episodes(id, season_num):
-    cached = get_cached("get_sonarr_episodes")
-    if cached:
-        return cached
     sonarr_series = sonarr_client.api_request(f"/series")
     series_id = ""
     for series in sonarr_series:
@@ -902,16 +860,12 @@ def get_sonarr_episodes(id, season_num):
     for ep in episodes:
         if int(ep.get("seasonNumber")) != int(season_num):
             continue
-        episode_data.append(ep)
-    set_cached("get_sonarr_episodes", episode_data)   
+        episode_data.append(ep)  
     return episode_data
 
 def show_requested_episodes(id, season):
     episodes = get_sonarr_episodes(id, season)
-    sonarr_requests = get_cached("sonarr_requests")
-    if not sonarr_requests:
-          sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
-          set_cached("sonarr_requests", sonarr_requests)
+    sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
     for ep in episodes:
         title = ep.get("title")
         ep_number = ep.get("episodeNumber")
@@ -1058,14 +1012,7 @@ def search():
     if not search_string:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
-        cache_key = f"search_{search_string}"
-        data = get_cached(cache_key)
-        
-        if not data:
-            data = jellyseer_client.api_request('/search', params={'query': search_string})
-            if data:
-                set_cached(cache_key, data)
-        
+        data = jellyseer_client.api_request('/search', params={'query': search_string})
         results = data.get('results', []) if data else []
         show_status = addon.getSettingBool('show_request_status')
         
@@ -1158,4 +1105,5 @@ elif mode == "showrequestedepisodes":
     id = args.get("id")
     season = args.get("season")
     show_requested_episodes(id=id, season=season)
+clean_cache()
         
