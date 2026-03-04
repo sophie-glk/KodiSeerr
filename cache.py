@@ -14,6 +14,14 @@ cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddo
 
 def load_cache():
     global cache
+    window = xbmcgui.Window(10000)
+    try:
+     cache = json.loads(window.getProperty("seerr_cache"))
+    except:
+        return
+     
+def load_cache_disk():
+    global cache
     if addon.getSettingBool('enable_caching'):
         try:
             if os.path.exists(cache_path):
@@ -24,6 +32,11 @@ def load_cache():
             cache = {}
 
 def save_cache():
+    if addon.getSettingBool('enable_caching'):
+        window = xbmcgui.Window(10000) # Home
+        window.setProperty("seerr_cache",  json.dumps(cache))
+
+def save_cache_disk():
     if addon.getSettingBool('enable_caching'):
         try:
             os.makedirs(os.path.dirname(cache_path), exist_ok=True)
@@ -46,7 +59,6 @@ def set_cached(key, data,  duration=None):
         duration = addon.getSettingInt('cache_duration') * 60
     if addon.getSettingBool('enable_caching'):
         cache[key] = {'data': data, 'timestamp': time.time(), "duration": duration}
-        save_cache()
 
 def clear_cache():
     """Clear all cached data"""
