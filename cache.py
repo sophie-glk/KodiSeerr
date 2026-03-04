@@ -15,9 +15,11 @@ cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddo
 def load_cache():
     global cache
     window = xbmcgui.Window(10000)
-    try:
-     cache = json.loads(window.getProperty("seerr_cache"))
-    except:
+    cache_string = window.getProperty("seerr_cache")
+    if cache_string != "" and cache_string is not None:
+     try:
+      cache = json.loads(window.getProperty("seerr_cache"))
+     except:
         return
      
 def load_cache_disk():
