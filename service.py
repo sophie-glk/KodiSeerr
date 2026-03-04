@@ -41,7 +41,7 @@ def main_loop():
     while not monitor.abortRequested():
         if addon.getSettingBool('enable_request_notifications'):
             try:
-                requests_data = create_client(JellyseerrClient).client.api_request('/request')
+                requests_data = create_client(JellyseerrClient).api_request('/request')
             except Exception:
                 import traceback
                 traceback.print_exc()
