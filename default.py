@@ -1106,4 +1106,5 @@ elif mode == "showrequestedepisodes":
     season = args.get("season")
     show_requested_episodes(id=id, season=season)
 clean_cache()
+save_cache()
         
