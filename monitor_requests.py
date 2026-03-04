@@ -15,20 +15,6 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
     total_results = page_info.get('results', len(items))
     total_pages = page_info.get('pages', 1)
 
-    page_info_item = xbmcgui.ListItem(label=f'[I]Page {current_page} of {total_pages}[/I]')
-    page_info_item.setArt({'icon': 'DefaultAddonNone.png'})
-    xbmcplugin.addDirectoryItem(addon_handle, '', page_info_item, False)
-
-    jump_url = build_url({'mode': 'jump_to_page', 'original_mode': mode})
-    jump_item = xbmcgui.ListItem(label='[B]Jump to Page...[/B]')
-    jump_item.setArt({'icon': 'DefaultAddonNone.png'})
-    xbmcplugin.addDirectoryItem(addon_handle, jump_url, jump_item, True)
-
-    if current_page > 1:
-        prev_page_url = build_url({'mode': mode, 'page': current_page - 1})
-        prev_item = xbmcgui.ListItem(label=f'[B]<< Previous Page ({current_page - 1})[/B]')
-        prev_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-
     requestData_radarr = get_radarr_queue_data(radarr_client)
     requestData_sonarr_series =  get_sonarr_queue_data_series(sonarr_client)
     for item in items:
