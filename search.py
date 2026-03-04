@@ -1,0 +1,45 @@
+import xbmcplugin
+import xbmcgui
+from utils import get_status_label, make_art
+from utils import make_info
+from utils import get_media_status
+from utils import build_url
+from utils import set_info_tag
+def search(search_string, jellyseer_client, show_status, addon_handle):
+    xbmcplugin.setContent(addon_handle, 'videos')
+    if not search_string:
+       search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
+    if search_string:
+        data = jellyseer_client.api_request('/search', params={'query': search_string})
+        results = data.get('results', []) if data else []
+        
+        for item in results:
+            media_type = item.get('mediaType', 'movie')
+            title = item.get('title') or item.get('name')
+            release_date = item.get('releaseDate') or item.get('firstAirDate')
+            year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
+            type_label = "(Movie)" if media_type == "movie" else "(TV Show)"
+            full_title = f"{title} ({year}) {type_label}" if year else f"{title} {type_label}"
+            
+            if show_status:
+                status = get_media_status(media_type, item.get('id'), jellyseer_client)
+                status_label = get_status_label(status)
+                if status_label:
+                    full_title += f" {status_label}"
+            
+            context_menu = []
+            context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": item.get("id")})})'))
+            context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": item.get("id")})})'))
+            
+            url = build_url({'mode': 'request', 'type': media_type, 'id': item.get('id')})
+            list_item = xbmcgui.ListItem(label=full_title)
+            list_item.addContextMenuItems(context_menu)
+            info = make_info(item, media_type)
+            art = make_art(item)
+            set_info_tag(list_item, info)
+            list_item.setArt(art)
+            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
+    xbmcplugin.endOfDirectory(addon_handle)

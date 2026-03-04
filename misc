@@ -1,0 +1,26 @@
+
+
+
+def list_seasons(tv_id):
+    xbmcplugin.setContent(addon_handle, 'seasons')
+    data = jellyseer_client.api_request(f"/tv/{tv_id}")
+    if not data:
+        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch seasons", xbmcgui.NOTIFICATION_ERROR)
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    seasons = data.get('seasons', [])
+    show_title = data.get('title') or data.get('name')
+    for season in seasons:
+        season_number = season.get('seasonNumber', 0)
+        season_name = season.get('name', f"Season {season_number}")
+        label = f"{show_title} - {season_name}"
+        url = build_url({'mode': 'season', 'tv_id': tv_id, 'season': season_number})
+        list_item = xbmcgui.ListItem(label=label)
+        info = make_info(season, 'season')
+        art = make_art(season)
+        set_info_tag(list_item, info)
+        list_item.setArt(art)
+        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.endOfDirectory(addon_handle)

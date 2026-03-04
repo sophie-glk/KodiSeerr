@@ -1,4 +1,11 @@
 import sys
+from favorites import add_to_favorites, list_favorites, remove_from_favorites
+from list_collections import list_collections, show_collection_details
+from list_recently_added import list_recently_added
+from request import do_request, do_request_as_player
+from show_details import show_details
+from test_connection import test_connection
+from utils import build_url, jump_to_page, make_art, make_info, set_info_tag
 import xbmc
 import xbmcplugin
 import xbmcgui
@@ -13,11 +20,17 @@ from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
 from sonarr_api import SonarrClient
 from cache import *
+from monitor_requests import show_requested_episodes
+from monitor_requests import show_requests
+from monitor_requests import show_requested_seasons
+from monitor_requests import cancel_request
+from search import search
+from statistics import show_statistics
 
 load_cache()
+image_base = "https://image.tmdb.org/t/p/w500"
 favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
 preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
-
 addon = xbmcaddon.Addon()
 addon_handle = int(sys.argv[1])
 base_url = sys.argv[0]
@@ -25,216 +38,10 @@ args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
 radarr_client = create_client(RadarrClient)
 sonarr_client = create_client(SonarrClient)
-
-
-
-image_base = "https://image.tmdb.org/t/p/w500"
 enable_ask_4k = addon.getSettingBool('enable_ask_4k')
-
-
-def load_favorites():
-    try:
-        if os.path.exists(favorites_path):
-            with open(favorites_path, 'r') as f:
-                return set(json.load(f))
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Favorites load error: {e}", xbmc.LOGERROR)
-    return set()
-
-def save_favorites(favorites):
-    try:
-        os.makedirs(os.path.dirname(favorites_path), exist_ok=True)
-        with open(favorites_path, 'w') as f:
-            json.dump(list(favorites), f)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Favorites save error: {e}", xbmc.LOGERROR)
-
-def load_preferences():
-    try:
-        if os.path.exists(preferences_path):
-            with open(preferences_path, 'r') as f:
-                return json.load(f)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Preferences load error: {e}", xbmc.LOGERROR)
-    return {}
-
-def save_preferences(prefs):
-    try:
-        os.makedirs(os.path.dirname(preferences_path), exist_ok=True)
-        with open(preferences_path, 'w') as f:
-            json.dump(prefs, f)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Preferences save error: {e}", xbmc.LOGERROR)
-
-
-def build_url(query):
-    return base_url + '?' + urllib.parse.urlencode(query)
-
-def make_art(item):
-    art = {}
-    for k in ["posterPath", "backdropPath", "logoPath", "bannerPath", "landscapePath", "iconPath", "clearartPath"]:
-        if item.get(k):
-            if k == "posterPath":
-                art["poster"] = image_base + item[k]
-                art["thumb"] = image_base + item[k]
-            elif k == "backdropPath":
-                art["fanart"] = image_base + item[k]
-            elif k == "logoPath":
-                art["clearlogo"] = image_base + item[k]
-            elif k == "bannerPath":
-                art["banner"] = image_base + item[k]
-            elif k == "landscapePath":
-                art["landscape"] = image_base + item[k]
-            elif k == "iconPath":
-                art["icon"] = image_base + item[k]
-            elif k == "clearartPath":
-                art["clearart"] = image_base + item[k]
-    return art
-
-def make_info(item, media_type):
-    release_date = item.get('releaseDate') or item.get('firstAirDate')
-    year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else 0
-    def join_names(obj_list):
-        return ', '.join(
-            g['name'] if isinstance(g, dict) and 'name' in g else str(g)
-            for g in obj_list
-        )
-    genres = join_names(item.get('genres', []))
-    studio = join_names(item.get('studios', [])) if item.get('studios') else ''
-    country = join_names(item.get('productionCountries', [])) if item.get('productionCountries') else ''
-    mpaa = item.get('certification', '')
-    runtime = item.get('runtime', 0)
-    try:
-        runtime = int(runtime)
-    except Exception:
-        runtime = 0
-    try:
-        rating = float(item.get('voteAverage', 0))
-    except Exception:
-        rating = 0.0
-    votes = item.get('voteCount', 0)
-    try:
-        votes = int(votes)
-    except Exception:
-        votes = 0
-    director = ', '.join([c['name'] for c in item.get('crew', []) if c.get('job') == 'Director']) if item.get('crew') else ''
-    cast = [person['name'] for person in item.get('cast', []) if isinstance(person, dict) and 'name' in person]
-    cast_str = ', '.join(cast[:5])
-    plot = item.get('overview', '')
-    title = item.get('title') or item.get('name')
-    rich_plot = f"{title} ({year})"
-    if genres: rich_plot += f"\nGenres: {genres}"
-    if studio: rich_plot += f"\nStudio: {studio}"
-    if country: rich_plot += f"\nCountry: {country}"
-    if mpaa: rich_plot += f"\nCertification: {mpaa}"
-    if runtime: rich_plot += f"\nRuntime: {runtime} min"
-    if rating: rich_plot += f"\nRating: {rating} ({votes} votes)"
-    if director: rich_plot += f"\nDirector: {director}"
-    if cast_str: rich_plot += f"\nCast: {cast_str}"
-    if plot: rich_plot += f"\n\n{plot}"
-
-    info = {
-        'title': title or "",
-        'plot': rich_plot or "",
-        'year': year,
-        'genre': genres or "",
-        'rating': rating,
-        'votes': votes,
-        'premiered': release_date or "",
-        'duration': runtime,
-        'mpaa': mpaa or "",
-        'cast': cast,
-        'director': director or "",
-        'studio': studio or "",
-        'country': country or "",
-        'mediatype': media_type
-    }
-    return info
-
-def set_info_tag(list_item, info):
-    info_tag = list_item.getVideoInfoTag()
-    if info.get('title'): info_tag.setTitle(info['title'])
-    if info.get('plot'): info_tag.setPlot(info['plot'])
-    if info.get('year'):
-        try:
-            info_tag.setYear(int(info['year']))
-        except Exception:
-            pass
-    if info.get('genre'): info_tag.setGenre(info['genre'])
-    if info.get('rating'):
-        try:
-            info_tag.setRating(float(info['rating']))
-        except Exception:
-            pass
-    if info.get('votes'):
-        try:
-            info_tag.setVotes(int(info['votes']))
-        except Exception:
-            pass
-    if info.get('premiered'): info_tag.setPremiered(info['premiered'])
-    if info.get('duration'):
-        try:
-            info_tag.setDuration(int(info['duration']))
-        except Exception:
-            pass
-    if info.get('mpaa'): info_tag.setMpaa(info['mpaa'])
-    if info.get('cast'): info_tag.setCast(info['cast'])
-    if info.get('director'): info_tag.setDirector(info['director'])
-    if info.get('studio'): info_tag.setStudio(info['studio'])
-    if info.get('country'): info_tag.setCountry(info['country'])
-    if info.get('mediatype'): info_tag.setMediaType(info['mediatype'])
-
-def get_media_status(media_type, media_id):
-    """Get the request status for a media item"""
-    try:
-        data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
-        if data and data.get('mediaInfo'):
-            status = data['mediaInfo'].get('status', 0)
-            return status
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Status check error: {e}", xbmc.LOGERROR)
-    return 0
-
-def get_status_label(status):
-    """Convert status code to label"""
-    status_map = {
-        1: "",
-        2: "[COLOR yellow](Pending)[/COLOR]",
-        3: "[COLOR cyan](Processing)[/COLOR]",
-        4: "[COLOR lime](Partially Available)[/COLOR]",
-        5: "[COLOR lime](Available)[/COLOR]"
-    }
-    return status_map.get(status, "")
-
-#CHANGE
-def test_connection():
-    """Test connection to Jellyseerr server"""
-    try:
-        from jellyseerr_api import JellyseerrClient
-        
-        test_url = addon.getSetting("jellyseerr_url").rstrip("/")
-        test_username = addon.getSetting("jellyseerr_username")
-        test_password = addon.getSetting("jellyseerr_password")
-        test_api_token = addon.getSetting("jellyseerr_api_token")
-        test_auth_method = addon.getSetting("auth_method")
-        
-        if not test_auth_method:
-            test_auth_method = "password"
-        
-        test_client = JellyseerrClient(test_url, test_username, test_password, test_api_token, test_auth_method)
-        
-        if test_client.login():
-            xbmcgui.Dialog().notification('KodiSeerr', 'Connection successful!', xbmcgui.NOTIFICATION_INFO, 3000)
-        else:
-            xbmcgui.Dialog().notification('KodiSeerr', 'Connection failed. Check settings.', xbmcgui.NOTIFICATION_ERROR, 5000)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Test connection error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification('KodiSeerr', f'Error: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 5000)
-    xbmc.executebuiltin("Action(Back)")
 
 def list_main_menu():
     xbmcplugin.setContent(addon_handle, 'files')
-    
     items = [
         ('recently_added', 'Recently Added', 'DefaultRecentlyAddedMovies.png', True),
         ('collections', 'Collections', 'DefaultSets.png', True),
@@ -265,688 +72,13 @@ def list_main_menu():
     
     xbmcplugin.endOfDirectory(addon_handle)
 
-def list_genres(media_type):
-    xbmcplugin.setContent(addon_handle, 'genres')
-    data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
-    if data:
-        for item in data:
-            name = item.get('name')
-            id = item.get('id')
-            display_type = "movies" if media_type == "movie" else media_type
-            url = build_url({'mode': 'genre', 'display_type': display_type, 'genre_id': id})
-            list_item = xbmcgui.ListItem(label=name)
-            list_item.setArt({'icon': 'DefaultGenre.png'})
-            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
-    else:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch genres", xbmcgui.NOTIFICATION_ERROR)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def list_collections():
-    """List movie collections"""
-    xbmcplugin.setContent(addon_handle, 'sets')
-    page = args.get('page', 1)
-    try:
-        page = int(page)
-    except:
-        page = 1
-    
-    data = jellyseer_client.api_request("/discover/movies", params={"page": page, "sortBy": "popularity.desc"})
-    
-    if data:
-        items = data.get('results', [])
-        collections_seen = set()
-        
-        for item in items:
-            if item.get('belongsToCollection'):
-                coll = item['belongsToCollection']
-                coll_id = coll.get('id')
-                if coll_id not in collections_seen:
-                    collections_seen.add(coll_id)
-                    name = coll.get('name', 'Unknown Collection')
-                    url = build_url({'mode': 'collection_details', 'collection_id': coll_id})
-                    list_item = xbmcgui.ListItem(label=name)
-                    if coll.get('posterPath'):
-                        list_item.setArt({'poster': image_base + coll['posterPath'], 'thumb': image_base + coll['posterPath']})
-                    xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
-    
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def show_collection_details(collection_id):
-    """Show movies in a collection"""
-    xbmcplugin.setContent(addon_handle, 'movies')
-    data = jellyseer_client.api_request(f"/collection/{collection_id}")
-    
-    if data:
-        parts = data.get('parts', [])
-        for item in parts:
-            media_type = 'movie'
-            title = item.get('title') or item.get('name')
-            release_date = item.get('releaseDate')
-            year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
-            
-            label = f"{title} ({year})" if year else title
-            
-            if addon.getSettingBool('show_request_status'):
-                status = get_media_status(media_type, item.get('id'))
-                status_label = get_status_label(status)
-                if status_label:
-                    label += f" {status_label}"
-            
-            id = item.get('id')
-            
-            context_menu = []
-            context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
-            context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": id})})'))
-            
-            url = build_url({'mode': 'request', 'type': media_type, 'id': id})
-            list_item = xbmcgui.ListItem(label=label)
-            list_item.addContextMenuItems(context_menu)
-            info = make_info(item, media_type)
-            art = make_art(item)
-            set_info_tag(list_item, info)
-            list_item.setArt(art)
-            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def list_items(data, mode, display_type=None, genre_id=None):
-    items = data.get('results', [])
-    current_page = data.get('page', 1)
-    total_pages = data.get('totalPages', 1)
-    
-    is_widget = xbmc.getCondVisibility('Window.IsVisible(home)')
-    hide_pagination = addon.getSettingBool('hide_pagination_in_widgets')
-    
-    if items:
-        first_media_type = items[0].get('mediaType', 'video')
-        if first_media_type == 'movie':
-            xbmcplugin.setContent(addon_handle, 'movies')
-        elif first_media_type == 'tv':
-            xbmcplugin.setContent(addon_handle, 'tvshows')
-        else:
-            xbmcplugin.setContent(addon_handle, 'videos')
-    else:
-        xbmcplugin.setContent(addon_handle, 'videos')
-
-    if not (is_widget and hide_pagination):
-        page_info = xbmcgui.ListItem(label=f'[I]Page {current_page} of {total_pages}[/I]')
-        page_info.setArt({'icon': 'DefaultAddonNone.png'})
-        xbmcplugin.addDirectoryItem(addon_handle, '', page_info, False)
-
-        params = {'mode': 'jump_to_page', 'original_mode': mode}
-        if mode == "genre":
-            params['genre_id'] = genre_id
-            params['display_type'] = display_type
-        jump_url = build_url(params)
-        jump_item = xbmcgui.ListItem(label='[B]Jump to Page...[/B]')
-        jump_item.setArt({'icon': 'DefaultAddonNone.png'})
-        xbmcplugin.addDirectoryItem(addon_handle, jump_url, jump_item, True)
-
-        if current_page > 1:
-            params = {
-                'mode': mode,
-                'page': current_page - 1
-            }
-            if mode == "genre":
-                params['genre_id'] = genre_id
-                params['display_type'] = display_type
-            prev_page_url = build_url(params)
-            prev_item = xbmcgui.ListItem(label=f'[B]<< Previous Page ({current_page - 1})[/B]')
-            prev_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-            xbmcplugin.addDirectoryItem(addon_handle, prev_page_url, prev_item, True)
-
-    show_status = addon.getSettingBool('show_request_status')
-    
-    for item in items:
-        media_type = item.get('mediaType')
-        title = item.get('title') or item.get('name')
-        release_date = item.get('releaseDate') or item.get('firstAirDate')
-        year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
-        label = f"{title} ({year})" if year else title
-        
-        if show_status:
-            status = get_media_status(media_type, item.get('id'))
-            status_label = get_status_label(status)
-            if status_label:
-                label += f" {status_label}"
-        
-        id = item.get('id')
-        
-        context_menu = []
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
-        context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": id})})'))
-        
-        url = build_url({'mode': 'request', 'type': media_type, 'id': id})
-        list_item = xbmcgui.ListItem(label=label)
-        list_item.addContextMenuItems(context_menu)
-        info = make_info(item, media_type)
-        art = make_art(item)
-        set_info_tag(list_item, info)
-        list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-
-    if not (is_widget and hide_pagination):
-        if current_page < total_pages:
-            params = {
-                'mode': mode,
-                'page': current_page + 1
-            }
-            if mode == "genre":
-                params['genre_id'] = genre_id
-                params['display_type'] = display_type
-            next_page_url = build_url(params)
-            next_item = xbmcgui.ListItem(label=f'[B]Next Page ({current_page + 1}) >>[/B]')
-            next_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-            xbmcplugin.addDirectoryItem(addon_handle, next_page_url, next_item, True)
-    
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_RATING)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def jump_to_page():
-    """Allow user to jump to a specific page"""
-    keyboard = xbmcgui.Dialog().input('Enter Page Number', type=xbmcgui.INPUT_NUMERIC)
-    if keyboard:
-        try:
-            page = int(keyboard)
-            if page < 1:
-                xbmcgui.Dialog().notification('KodiSeerr', 'Page number must be at least 1', xbmcgui.NOTIFICATION_ERROR)
-                return
-            
-            original_mode = args.get('original_mode')
-            params = {'mode': original_mode, 'page': page}
-            
-            if args.get('genre_id'):
-                params['genre_id'] = args.get('genre_id')
-            if args.get('display_type'):
-                params['display_type'] = args.get('display_type')
-            
-            xbmc.executebuiltin(f'Container.Update({build_url(params)})')
-        except ValueError:
-            xbmcgui.Dialog().notification('KodiSeerr', 'Invalid page number', xbmcgui.NOTIFICATION_ERROR)
-
-def show_details(media_type, media_id):
-    """Show detailed information about a media item"""
-    data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
-    if not data:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch details", xbmcgui.NOTIFICATION_ERROR)
-        return
-    
-    title = data.get('title') or data.get('name', 'Unknown')
-    overview = data.get('overview', 'No description available')
-    release_date = data.get('releaseDate') or data.get('firstAirDate', 'Unknown')
-    rating = data.get('voteAverage', 0)
-    genres = ', '.join([g['name'] for g in data.get('genres', [])])
-    
-    details = f"[B]{title}[/B]\n\n"
-    details += f"Release Date: {release_date}\n"
-    details += f"Rating: {rating}/10\n"
-    if genres:
-        details += f"Genres: {genres}\n"
-    details += f"\n{overview}\n\n"
-    
-    if data.get('cast'):
-        cast_names = [c['name'] for c in data['cast'][:10]]
-        details += f"\n[B]Cast:[/B]\n{', '.join(cast_names)}\n"
-    
-    if data.get('recommendations'):
-        details += f"\n[B]Recommended:[/B]\n"
-        for rec in data['recommendations'][:5]:
-            rec_title = rec.get('title') or rec.get('name')
-            details += f"• {rec_title}\n"
-    
-    xbmcgui.Dialog().textviewer(title, details)
-
-def add_to_favorites(media_type, media_id):
-    """Add item to favorites"""
-    favorites = load_favorites()
-    fav_key = f"{media_type}_{media_id}"
-    if fav_key in favorites:
-        xbmcgui.Dialog().notification('KodiSeerr', 'Already in favorites', xbmcgui.NOTIFICATION_INFO)
-    else:
-        favorites.add(fav_key)
-        save_favorites(favorites)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Added to favorites', xbmcgui.NOTIFICATION_INFO)
-
-def remove_from_favorites(media_type, media_id):
-    """Remove item from favorites"""
-    favorites = load_favorites()
-    fav_key = f"{media_type}_{media_id}"
-    if fav_key in favorites:
-        favorites.remove(fav_key)
-        save_favorites(favorites)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Removed from favorites', xbmcgui.NOTIFICATION_INFO)
-        xbmc.executebuiltin('Container.Refresh')
-
-def list_favorites():
-    """List user's favorite items"""
-    xbmcplugin.setContent(addon_handle, 'videos')
-    favorites = load_favorites()
-    
-    if not favorites:
-        info_item = xbmcgui.ListItem(label='[I]No favorites yet[/I]')
-        xbmcplugin.addDirectoryItem(addon_handle, '', info_item, False)
-    else:
-        for fav in favorites:
-            parts = fav.split('_')
-            if len(parts) >= 2:
-                media_type = parts[0]
-                media_id = parts[1]
-                
-                data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
-                if data:
-                    title = data.get('title') or data.get('name', 'Unknown')
-                    label = title
-                    
-                    context_menu = []
-                    context_menu.append(('Remove from Favorites', f'RunPlugin({build_url({"mode": "remove_favorite", "type": media_type, "id": media_id})})'))
-                    context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": media_id})})'))
-                    
-                    url = build_url({'mode': 'request', 'type': media_type, 'id': media_id})
-                    list_item = xbmcgui.ListItem(label=label)
-                    list_item.addContextMenuItems(context_menu)
-                    info = make_info(data, media_type)
-                    art = make_art(data)
-                    set_info_tag(list_item, info)
-                    list_item.setArt(art)
-                    xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def show_statistics():
-    """Show user statistics"""
-    try:
-        requests_data = jellyseer_client.api_request('/request', params={'take': 1000})
-        if not requests_data:
-            xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
-            return
-        
-        items = requests_data.get('results', [])
-        
-        total = len(items)
-        movies = sum(1 for i in items if i.get('media', {}).get('mediaType') == 'movie')
-        tv = sum(1 for i in items if i.get('media', {}).get('mediaType') == 'tv')
-        
-        status_counts = {}
-        for item in items:
-            status = item.get('media', {}).get('status', 0)
-            status_counts[status] = status_counts.get(status, 0) + 1
-        
-        pending = status_counts.get(2, 0)
-        processing = status_counts.get(3, 0)
-        available = status_counts.get(5, 0)
-        
-        stats = f"[B]Your Request Statistics[/B]\n\n"
-        stats += f"Total Requests: {total}\n"
-        stats += f"Movies: {movies}\n"
-        stats += f"TV Shows: {tv}\n\n"
-        stats += f"[COLOR yellow]Pending:[/COLOR] {pending}\n"
-        stats += f"[COLOR cyan]Processing:[/COLOR] {processing}\n"
-        stats += f"[COLOR lime]Available:[/COLOR] {available}\n"
-        
-        xbmcgui.Dialog().textviewer("Statistics", stats)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Statistics error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
-    xbmc.executebuiltin("Action(Back)")
-
-def get_quality_profiles():
-    """Get available quality profiles from server"""
-    try:
-        # This depends on Jellyseerr API - might need adjustment
-        data = jellyseer_client.api_request('/settings/radarr')
-        if data and isinstance(data, list) and len(data) > 0:
-            profiles = data[0].get('profiles', [])
-            return [(p['id'], p['name']) for p in profiles]
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Quality profiles error: {e}", xbmc.LOGERROR)
-    return []
-
-
-def do_request(media_type, id):
-    """Handle media request with advanced options"""
-    # Check if already requested/available
-    status = get_media_status(media_type, id)
-    if status >= 5:
-        if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already available. Request anyway?'):
-            return
-    elif status in [2, 3, 4]:
-        if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
-            return
-    seasons_to_request = []
-    tv_request_types = ["Request this season", "Request all seasons"]
-    if media_type == "tv":    
-     selected_tv_request_type = xbmcgui.Dialog().select("Seerr Request", tv_request_types)
-     if selected_tv_request_type < 0:
-         return
-     elif selected_tv_request_type == 0:
-         season = args.get("season")
-         if season:
-             seasons_to_request = [int(season)]
-         #TODO ERROR
-     else:
-         seasons_to_request = "all"
-    is4k = False
-    quality_profile = None
-
-    if enable_ask_4k:
-        prefs = load_preferences()
-        if addon.getSettingBool('remember_last_quality') and 'last_4k_choice' in prefs:
-            is4k = prefs['last_4k_choice']
-        else:
-            if xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?'):
-                is4k = True
-        
-        if addon.getSettingBool('remember_last_quality'):
-            prefs['last_4k_choice'] = is4k
-            save_preferences(prefs)
-    
-    if addon.getSettingBool('show_quality_profiles'):
-        profiles = get_quality_profiles()
-        if profiles:
-            profile_names = [p[1] for p in profiles]
-            selected = xbmcgui.Dialog().select('Select Quality Profile', profile_names)
-            if selected >= 0:
-                quality_profile = profiles[selected][0]
-    
-
-    if addon.getSettingBool('confirm_before_request'):
-        title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
-        title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
-        msg = f"Request {title}"
-        if is4k:
-            msg += " in 4K"
-        msg += "?"
-        if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
-            return
-    
-    payload = {
-        "mediaType": media_type,
-        "mediaId": int(id),
-        "is4k": is4k
-    }
-    
-    if media_type == "tv":
-        payload["seasons"] = seasons_to_request
-    
-    if quality_profile:
-        payload["profileId"] = quality_profile
-    
-    try:
-        jellyseer_client.api_request("/request", method="POST", data=payload)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
-    except Exception as e:
-        xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
-    
-    xbmc.executebuiltin("Action(Back)")
-
-def do_request_as_player(media_type, id):
-    #immediately tell kodi that we are done with playback, this prevents time outs
-    item = xbmcgui.ListItem()
-    item.setProperty('IsPlayable', 'true')
-    item.setMimeType('audio/mpeg')
-    xbmcplugin.setResolvedUrl(addon_handle, False, item)
-    season = "all"
-    if args.get("season") != None:
-        season = args.get("season")
-    url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season})
-    xbmc.executebuiltin(f'RunPlugin({url})')
-
-def cancel_request(request_id):
-    """Cancel a pending request"""
-    if xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
-        try:
-            jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
-            xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
-            xbmc.executebuiltin('Container.Refresh')
-        except Exception as e:
-            xbmcgui.Dialog().notification('KodiSeerr', f'Failed to cancel: {str(e)}', xbmcgui.NOTIFICATION_ERROR)
-
-def show_requests(data, mode, current_page):
-    """Display user's requests with pagination"""
-    xbmcplugin.setContent(addon_handle, 'videos')
-    
-    items = data.get('results', [])
-    page_info = data.get('pageInfo', {})
-    total_results = page_info.get('results', len(items))
-    total_pages = page_info.get('pages', 1)
-
-    page_info_item = xbmcgui.ListItem(label=f'[I]Page {current_page} of {total_pages}[/I]')
-    page_info_item.setArt({'icon': 'DefaultAddonNone.png'})
-    xbmcplugin.addDirectoryItem(addon_handle, '', page_info_item, False)
-
-    jump_url = build_url({'mode': 'jump_to_page', 'original_mode': mode})
-    jump_item = xbmcgui.ListItem(label='[B]Jump to Page...[/B]')
-    jump_item.setArt({'icon': 'DefaultAddonNone.png'})
-    xbmcplugin.addDirectoryItem(addon_handle, jump_url, jump_item, True)
-
-    if current_page > 1:
-        prev_page_url = build_url({'mode': mode, 'page': current_page - 1})
-        prev_item = xbmcgui.ListItem(label=f'[B]<< Previous Page ({current_page - 1})[/B]')
-        prev_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-
-    requestData_radarr = get_radarr_queue_data()
-    requestData_sonarr_series =  get_sonarr_queue_data_series()
-    for item in items:
-        media = item.get('media', {})
-        id = media.get('tmdbId')
-        size = None
-        sizeleft = None
-        arr_status = ""
-        timeleft = ""
-        seer_status = media.get('status')
-        if seer_status in [2,3]:
-         for item in requestData_radarr + requestData_sonarr_series:
-          if item.get("tmdbId") == id:
-             try:
-                 size = float(item.get("size"))/(1024**3)
-                 sizeleft = float(item.get("sizeleft"))/(1024**3)
-                 arr_status = item.get("status")
-                 timeleft = item.get("timeleft")
-             except:
-                 continue
-        media_type = media.get('mediaType')
-        request_id = item.get('id')
-        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
-        if not mediaData:
-            continue
-        label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
-        plot_text = ""
-        if seer_status == 2:
-            label_text += " [COLOR yellow](Pending)[/COLOR]"
-        elif seer_status == 3:
-            label_text += " [COLOR cyan](Processing)[/COLOR]"
-            label_text += f" Status: {arr_status}"
-            plot_text += f" Status: {arr_status},"
-            if arr_status == "downloading" and media_type == "movie":
-                            plot_text += f" Time left: {timeleft} h,"
-                            if size is not None and sizeleft is not None:
-                                sizedone =  size - sizeleft
-                                plot_text += f" {sizedone:.1f} GB / {size:.1f} GB"
-        elif seer_status == 4:
-            label_text += " [COLOR lime](Partially Available)[/COLOR]"
-        elif seer_status == 5:
-            label_text += " [COLOR lime](Available)[/COLOR]"
-
-        context_menu = []
-        if seer_status in [2, 3]:
-            context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
-        if media_type == "movie":
-           url = build_url({'mode': 'request', 'type': media_type, 'id': id})
-        else:
-           url =  build_url({'mode': "showrequestedseasons", "id": id }) 
-        list_item = xbmcgui.ListItem(label=label_text)
-        list_item.addContextMenuItems(context_menu)
-        info = {'title': label_text, 'plot': plot_text}
-        set_info_tag(list_item, info)
-        art = make_art(mediaData)
-        list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
-
-    if current_page < total_pages:
-        next_page_url = build_url({'mode': mode, 'page': current_page + 1})
-        next_item = xbmcgui.ListItem(label=f'[B]Next Page ({current_page + 1}) >>[/B]')
-        next_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-        xbmcplugin.addDirectoryItem(addon_handle, next_page_url, next_item, True)
-    
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.endOfDirectory(addon_handle)    
-
-def get_sonarr_queue_data_series():
-    requestData_sonarr = sonarr_client.api_request(f"/queue", params={}).get("records")
-    foundSeriesIds = []
-    requestData_sonarr_series = []
-    for item in requestData_sonarr:
-        seriesId = item.get("seriesId")
-        if seriesId not in foundSeriesIds:
-         foundSeriesIds.append(seriesId)
-         tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
-         item.update({"tmdbId" : tmdbId})
-         requestData_sonarr_series.append(item)
-    return requestData_sonarr_series
-
-def get_radarr_queue_data():
-    requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
-    for item in requestData_radarr:
-        movieId = item.get("movieId")
-        tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
-        item.update({"tmdbId" : tmdbId})
-    return requestData_radarr
-
-
-def show_requested_seasons():
-    id = args.get("id")
-    xbmcplugin.setContent(addon_handle, 'seasons')
-    seer_info = jellyseer_client.api_request(f"/tv/{id}")
-    media_info = seer_info.get("mediaInfo", [])
-    seasons = media_info.get("seasons", []) if media_info else []
-    xbmc.log(f"DEBUG KODISEERR: Response: {media_info}", level=xbmc.LOGERROR)         
-    for season in seasons :
-        season_number = season.get("seasonNumber", 0)
-        label_text = f"Season {season_number}"
-        seer_status = int(season.get("status", 0)) 
-        if seer_status == 2:
-            label_text += " [COLOR yellow](Pending)[/COLOR]"
-        elif seer_status == 3:
-            label_text += " [COLOR cyan](Processing)[/COLOR]"
-        elif seer_status == 4:
-            label_text += " [COLOR lime](Partially Available)[/COLOR]"
-        elif seer_status == 5:
-            label_text += " [COLOR lime](Available)[/COLOR]"
-        list_item = xbmcgui.ListItem(label=label_text)
-        list_item.setInfo('video', {
-            'mediatype': 'season',
-            'season': season_number
-        })
-        url = build_url({"mode": "showrequestedepisodes", "type": "tv", "id": id, "season": season_number})
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def get_sonarr_episodes(id, season_num):
-    sonarr_series = sonarr_client.api_request(f"/series")
-    series_id = ""
-    for series in sonarr_series:
-        tmdbId =  series.get("tmdbId") 
-        if int(series.get("tmdbId")) == int(id):
-           series_id = series.get("id")
-           break
-    episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id})
-    episode_data = []
-    for ep in episodes:
-        if int(ep.get("seasonNumber")) != int(season_num):
-            continue
-        episode_data.append(ep)  
-    return episode_data
-
-def show_requested_episodes(id, season):
-    episodes = get_sonarr_episodes(id, season)
-    sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
-    for ep in episodes:
-        title = ep.get("title")
-        ep_number = ep.get("episodeNumber")
-        hasFile = ep.get("hasFile")
-        plot_text = ""
-        if hasFile:
-            plot_text = "[COLOR lime](Available)[/COLOR]"
-        else:
-            found = False
-            for request in sonarr_requests:
-                if int(request.get("episodeId")) == int(ep.get("id")):
-                    found = True
-                    status = request.get("status")
-                    plot_text += f"[COLOR cyan]({status})[/COLOR]"
-                    size = float(request.get("size"))/(1024**3)
-                    sizeleft = float(request.get("sizeleft"))/(1024**3)
-                    timeleft = request.get("timeleft")
-                    plot_text += f"[CR] Time left: {timeleft} h"
-                    sizedone =  size - sizeleft
-                    plot_text += f"[CR] {sizedone:.1f} GB / {size:.1f} GB"
-                    break
-            if not found:
-                plot_text = "[COLOR red] (Missing) [/COLOR]"
-        list_item = xbmcgui.ListItem()
-        list_item.setInfo("video",  {'title': title, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})
-        url = build_url({'mode': 'request', 'type': "tv", 'id': id})
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
-    xbmcplugin.endOfDirectory(addon_handle)    
-
-def list_recently_added():
-    """Show recently added content to the server"""
-    xbmcplugin.setContent(addon_handle, 'videos')
-    page = args.get('page', 1)
-    try:
-        page = int(page)
-    except:
-        page = 1
-    
-    recent_movies = jellyseer_client.api_request("/discover/movies", params={"sortBy": "mediaAdded", "page": page})
-    recent_tv = jellyseer_client.api_request("/discover/tv", params={"sortBy": "mediaAdded", "page": page})
-    
-    all_items = []
-    if recent_movies:
-        all_items.extend(recent_movies.get('results', []))
-    if recent_tv:
-        all_items.extend(recent_tv.get('results', []))
-    
-    for item in all_items[:20]:
-        media_type = item.get('mediaType')
-        title = item.get('title') or item.get('name')
-        release_date = item.get('releaseDate') or item.get('firstAirDate')
-        year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
-        label = f"{title} ({year})" if year else title
-        
-        id = item.get('id')
-        
-        context_menu = []
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
-        context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": id})})'))
-        
-        url = build_url({'mode': 'request', 'type': media_type, 'id': id})
-        list_item = xbmcgui.ListItem(label=label)
-        list_item.addContextMenuItems(context_menu)
-        info = make_info(item, media_type)
-        art = make_art(item)
-        set_info_tag(list_item, info)
-        list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    
-    xbmcplugin.endOfDirectory(addon_handle)
-
 def report_issue(media_type, media_id):
     """Report an issue with media"""
     issue_types = ['Video Issue', 'Audio Issue', 'Subtitles Issue', 'Other']
     selected = xbmcgui.Dialog().select('Select Issue Type', issue_types)
     if selected < 0:
         return
-    
     message = xbmcgui.Dialog().input('Describe the issue (optional)')
-    
     try:
         payload = {
             "issueType": selected + 1,
@@ -957,95 +89,7 @@ def report_issue(media_type, media_id):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)
         xbmcgui.Dialog().notification('KodiSeerr', 'Failed to report issue', xbmcgui.NOTIFICATION_ERROR)
-
-def list_seasons(tv_id):
-    xbmcplugin.setContent(addon_handle, 'seasons')
-    data = jellyseer_client.api_request(f"/tv/{tv_id}")
-    if not data:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch seasons", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-        return
-    seasons = data.get('seasons', [])
-    show_title = data.get('title') or data.get('name')
-    for season in seasons:
-        season_number = season.get('seasonNumber', 0)
-        season_name = season.get('name', f"Season {season_number}")
-        label = f"{show_title} - {season_name}"
-        url = build_url({'mode': 'season', 'tv_id': tv_id, 'season': season_number})
-        list_item = xbmcgui.ListItem(label=label)
-        info = make_info(season, 'season')
-        art = make_art(season)
-        set_info_tag(list_item, info)
-        list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def list_episodes(tv_id, season_number):
-    xbmcplugin.setContent(addon_handle, 'episodes')
-    data = jellyseer_client.api_request(f"/tv/{tv_id}/season/{season_number}")
-    if not data:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch episodes", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
-        return
-    episodes = data.get('episodes', [])
-    show_title = data.get('show', {}).get('name') or data.get('show', {}).get('title', '')
-    for ep in episodes:
-        ep_num = ep.get('episodeNumber', 0)
-        title = ep.get('name') or ep.get('title', f"Episode {ep_num}")
-        label = f"S{season_number:02d}E{ep_num:02d} - {title}"
-        list_item = xbmcgui.ListItem(label=label)
-        info = make_info(ep, 'episode')
-        art = make_art(ep)
-        set_info_tag(list_item, info)
-        list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, '', list_item, False)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
-    xbmcplugin.endOfDirectory(addon_handle)
-
-def search():
-    xbmcplugin.setContent(addon_handle, 'videos')
-    search_string = args.get("query")
-    if not search_string:
-       search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
-    if search_string:
-        data = jellyseer_client.api_request('/search', params={'query': search_string})
-        results = data.get('results', []) if data else []
-        show_status = addon.getSettingBool('show_request_status')
         
-        for item in results:
-            media_type = item.get('mediaType', 'movie')
-            title = item.get('title') or item.get('name')
-            release_date = item.get('releaseDate') or item.get('firstAirDate')
-            year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
-            type_label = "(Movie)" if media_type == "movie" else "(TV Show)"
-            full_title = f"{title} ({year}) {type_label}" if year else f"{title} {type_label}"
-            
-            if show_status:
-                status = get_media_status(media_type, item.get('id'))
-                status_label = get_status_label(status)
-                if status_label:
-                    full_title += f" {status_label}"
-            
-            context_menu = []
-            context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": item.get("id")})})'))
-            context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": item.get("id")})})'))
-            
-            url = build_url({'mode': 'request', 'type': media_type, 'id': item.get('id')})
-            list_item = xbmcgui.ListItem(label=full_title)
-            list_item.addContextMenuItems(context_menu)
-            info = make_info(item, media_type)
-            art = make_art(item)
-            set_info_tag(list_item, info)
-            list_item.setArt(art)
-            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
-    xbmcplugin.endOfDirectory(addon_handle)
 mode = args.get('mode')
 page = args.get('page')
 if not page:
@@ -1063,48 +107,48 @@ elif mode == "test_connection":
 elif mode == "clear_cache":
     clear_cache()
 elif mode == "statistics":
-    show_statistics()
+    show_statistics(jellyseer_client)
 elif mode == "favorites":
-    list_favorites()
+    list_favorites(favorites_path, jellyseer_client, addon_handle)
 elif mode == "add_favorite":
-    add_to_favorites(args.get('type'), args.get('id'))
+    add_to_favorites(args.get('type'), args.get('id'), favorites_path)
 elif mode == "remove_favorite":
-    remove_from_favorites(args.get('type'), args.get('id'))
+    remove_from_favorites(args.get('type'), args.get('id'),  favorites_path)
 elif mode == "show_details":
-    show_details(args.get('type'), args.get('id'))
+    show_details(args.get('type'), args.get('id'), jellyseer_client)
 elif mode == "report_issue":
     report_issue(args.get('type'), args.get('id'))
 elif mode == "cancel_request":
     cancel_request(args.get('request_id'))
 elif mode == "jump_to_page":
-    jump_to_page()
+    jump_to_page(args)
 elif mode == "collections":
-    list_collections()
+    list_collections(page, jellyseer_client, image_base, addon_handle)
 elif mode == "collection_details":
-    show_collection_details(args.get('collection_id'))
+    show_request_status = addon.getSettingBool('show_request_status')
+    show_collection_details(args.get('collection_id'), show_request_status, jellyseer_client, addon_handle)
 elif mode == "recently_added":
-    list_recently_added()
+    list_recently_added(page, jellyseer_client, addon_handle)
 elif mode == "search":
-    search()
+    search_string = args.get("query")
+    show_status = addon.getSettingBool('show_request_status')
+    search(search_string, jellyseer_client, show_status, addon_handle)
 elif mode == "playerrequest":
-    do_request_as_player(args.get('type'), args.get('id'))
+    do_request_as_player(args.get('type'), args.get('id'), args.get("season"), addon_handle)
 elif mode == "request":
-    do_request(args.get('type'), args.get('id'))
+    media_type = args.get("type")
+    id = args.get("id")
+    season = args.get("season")
+    do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon)
 elif mode == "requests":
-    take = 20
-    skip = (page - 1) * take
-    data = jellyseer_client.api_request("/request", params={"take": take, "skip": skip, "sort": "added", "filter": "all"})
-    if data:
-        show_requests(data, mode, page)
-    else:
-        xbmcgui.Dialog().notification("Kodiseerr", "Failed to fetch requests", xbmcgui.NOTIFICATION_ERROR)
-        xbmcplugin.endOfDirectory(addon_handle)
+    show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
-    show_requested_seasons()
+    id = args.get("id")
+    show_requested_seasons(id, jellyseer_client, addon_handle)
 elif mode == "showrequestedepisodes":
     id = args.get("id")
     season = args.get("season")
-    show_requested_episodes(id=id, season=season)
+    show_requested_episodes(id=id, season=season, sonarr_client=sonarr_client, addon_handle=addon_handle)
 clean_cache()
 save_cache()
         
