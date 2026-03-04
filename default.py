@@ -89,7 +89,7 @@ def report_issue(media_type, media_id):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)
         xbmcgui.Dialog().notification('KodiSeerr', 'Failed to report issue', xbmcgui.NOTIFICATION_ERROR)
-        
+
 mode = args.get('mode')
 page = args.get('page')
 if not page:
@@ -139,7 +139,7 @@ elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")
     season = args.get("season")
-    do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon)
+    do_request(media_type, season, id, enable_ask_4k, jellyseer_client, addon)
 elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
