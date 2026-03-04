@@ -76,13 +76,13 @@ def clear_cache():
 
 def clean_cache():
     window = xbmcgui.Window(10000)
-    cache_string = window.getProperty("seerr_cache")
+    cache_string = window.getProperty("seerr_cache") 
     if cache_string != "" and cache_string is not None:
      try:
       temp_cache = json.loads(window.getProperty("seerr_cache"))
      except:
         return
-    current_time = time.time()
-    for id, item in temp_cache.items():
+     current_time = time.time()
+     for id, item in temp_cache.items():
         if current_time - item.get("timestamp", 0) > item.get("duration", 60):
-            cache.pop(id, None)
+             cache.pop(id, None)
