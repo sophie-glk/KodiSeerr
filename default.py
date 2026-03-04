@@ -12,6 +12,11 @@ from create_client import create_client
 from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
 from sonarr_api import SonarrClient
+from cache import *
+
+load_cache()
+favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
+preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
 
 addon = xbmcaddon.Addon()
 addon_handle = int(sys.argv[1])
@@ -26,45 +31,6 @@ sonarr_client = create_client(SonarrClient)
 image_base = "https://image.tmdb.org/t/p/w500"
 enable_ask_4k = addon.getSettingBool('enable_ask_4k')
 
-cache = {}
-cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/cache.json")
-favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
-preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
-
-def load_cache():
-    global cache
-    if addon.getSettingBool('enable_caching'):
-        try:
-            if os.path.exists(cache_path):
-                with open(cache_path, 'r') as f:
-                    cache = json.load(f)
-        except Exception as e:
-            xbmc.log(f"[KodiSeerr] Cache load error: {e}", xbmc.LOGERROR)
-            cache = {}
-
-def save_cache():
-    if addon.getSettingBool('enable_caching'):
-        try:
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, 'w') as f:
-                json.dump(cache, f)
-        except Exception as e:
-            xbmc.log(f"[KodiSeerr] Cache save error: {e}", xbmc.LOGERROR)
-
-def get_cached(key):
-    if not addon.getSettingBool('enable_caching'):
-        return None
-    if key in cache:
-        entry = cache[key]
-        cache_duration = addon.getSettingInt('cache_duration') * 60
-        if time.time() - entry.get('timestamp', 0) < cache_duration:
-            return entry.get('data')
-    return None
-
-def set_cached(key, data):
-    if addon.getSettingBool('enable_caching'):
-        cache[key] = {'data': data, 'timestamp': time.time()}
-        save_cache()
 
 def load_favorites():
     try:
@@ -791,7 +757,7 @@ def show_requests(data, mode, current_page):
         prev_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
 
     requestData_radarr = get_radarr_queue_data()
-    requestData_sonarr, requestData_sonarr_series =  get_sonarr_queue_data()
+    requestData_sonarr_series =  get_sonarr_queue_data_series()
     for item in items:
         media = item.get('media', {})
         id = media.get('tmdbId')
@@ -859,7 +825,10 @@ def show_requests(data, mode, current_page):
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.endOfDirectory(addon_handle)    
 
-def get_sonarr_queue_data():
+def get_sonarr_queue_data_series():
+    cached = get_cached("get_sonarr_queue_data_series")
+    if cached:
+        return cached
     requestData_sonarr = sonarr_client.api_request(f"/queue", params={}).get("records")
     foundSeriesIds = []
     requestData_sonarr_series = []
@@ -870,23 +839,30 @@ def get_sonarr_queue_data():
          tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
          item.update({"tmdbId" : tmdbId})
          requestData_sonarr_series.append(item)
-    return requestData_sonarr, requestData_sonarr_series
+    set_cached("get_sonarr_queue_data_series", requestData_sonarr_series, 30)
+    return requestData_sonarr_series
 
 def get_radarr_queue_data():
+    cached = get_cached("get_radarr_queue_data")
+    if cached:
+        return cached
     requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
     for item in requestData_radarr:
         movieId = item.get("movieId")
         tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
         item.update({"tmdbId" : tmdbId})
+    set_cached("get_radarr_queue_data", requestData_radarr, 30)
     return requestData_radarr
-
 
 
 def show_requested_seasons():
     id = args.get("id")
     xbmcplugin.setContent(addon_handle, 'seasons')
-    response = jellyseer_client.api_request(f"/tv/{id}")
-    media_info = response.get("mediaInfo", [])
+    seer_info = get_cached(f"seer_info_{id}")
+    if not seer_info:
+       seer_info = jellyseer_client.api_request(f"/tv/{id}")
+       set_cached(f"seer_info_{id}", seer_info)
+    media_info = seer_info.get("mediaInfo", [])
     seasons = media_info.get("seasons", []) if media_info else []
     xbmc.log(f"DEBUG KODISEERR: Response: {media_info}", level=xbmc.LOGERROR)         
     for season in seasons :
@@ -911,6 +887,9 @@ def show_requested_seasons():
     xbmcplugin.endOfDirectory(addon_handle)
 
 def get_sonarr_episodes(id, season_num):
+    cached = get_cached("get_sonarr_episodes")
+    if cached:
+        return cached
     sonarr_series = sonarr_client.api_request(f"/series")
     series_id = ""
     for series in sonarr_series:
@@ -924,12 +903,15 @@ def get_sonarr_episodes(id, season_num):
         if int(ep.get("seasonNumber")) != int(season_num):
             continue
         episode_data.append(ep)
-       
+    set_cached("get_sonarr_episodes", episode_data)   
     return episode_data
 
 def show_requested_episodes(id, season):
     episodes = get_sonarr_episodes(id, season)
-    sonarr_request = sonarr_client.api_request(f"/queue", params={}).get("records")
+    sonarr_requests = get_cached("sonarr_requests")
+    if not sonarr_requests:
+          sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
+          set_cached("sonarr_requests", sonarr_requests)
     for ep in episodes:
         title = ep.get("title")
         ep_number = ep.get("episodeNumber")
@@ -939,7 +921,7 @@ def show_requested_episodes(id, season):
             plot_text = "[COLOR lime](Available)[/COLOR]"
         else:
             found = False
-            for request in sonarr_request:
+            for request in sonarr_requests:
                 if int(request.get("episodeId")) == int(ep.get("id")):
                     found = True
                     status = request.get("status")
@@ -1117,7 +1099,6 @@ def search():
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
     xbmcplugin.endOfDirectory(addon_handle)
-load_cache()
 mode = args.get('mode')
 page = args.get('page')
 if not page:

@@ -6,6 +6,8 @@ import xbmcaddon
 import xbmc
 import json
 from urllib.parse import urlencode, quote
+import hashlib
+from cache import *
 
 class ApiClient:
     def __init__(self, endpoint_url, api_token):
@@ -32,15 +34,16 @@ class ApiClient:
 
     def api_request(self, endpoint, method="GET", data=None, params=None):
         """Sends an authenticated API request to the server."""
-
         url = f"{self.endpoint_url}{endpoint}"
         if params:
             safe_params = {k: str(v) for k, v in params.items()}
             url += '?' + urlencode(safe_params, quote_via=quote)
-
         if data is not None:
             data = json.dumps(data).encode('utf-8')
-
+        cache_key = hashlib.sha256(str(url + endpoint + method).encode("utf-8")).hexdigest()
+        cached = get_cached(cache_key)
+        if cached:
+            return cached
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")
         req.add_header("X-Api-Key", self.api_token)
@@ -48,7 +51,9 @@ class ApiClient:
             req.add_header("Content-Type", "application/json")   
         try:
             with self.opener.open(req) as resp:
-                return json.loads(resp.read().decode())
+                response = json.loads(resp.read().decode())
+                set_cached(cache_key, response)
+                return response
         except urllib.error.HTTPError as e:
             error_body = e.read().decode() if e.fp else ""
             xbmc.log(f"[kodiseerr] {self.name} API request failed: {e.code} {e.reason} - {error_body}", xbmc.LOGERROR)
