@@ -9,17 +9,14 @@ import hashlib
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token, endpoint_url_4k = None, api_token_4k=None):
+    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k = None, api_token_4k=None):
         self.endpoint_url = endpoint_url
         self.api_token = api_token
         self.opener = None
         self.name = ""
-        if endpoint_url_4k is not None:
-         self.__has4k = True
-         self.endpoint_url_4k = endpoint_url_4k
-         self.api_token_4k = api_token_4k
-        else:
-         self.__has4k = False
+        self.__has4k = has4k
+        self.endpoint_url_4k = endpoint_url_4k
+        self.api_token_4k = api_token_4k
         self.init_opener()
 
     def init_opener(self):
