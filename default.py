@@ -140,12 +140,13 @@ elif mode == "search":
     show_status = addon.getSettingBool('show_request_status')
     search(search_string, jellyseer_client, show_status, addon_handle)
 elif mode == "playerrequest":
-    do_request_as_player(args.get('type'), args.get('id'), args.get("season"), addon_handle)
+    do_request_as_player(args.get('type'), args.get('id'), args.get("season"), args.get("episode"), addon_handle)
 elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")
     season = args.get("season")
-    do_request(media_type, season, id, enable_ask_4k, jellyseer_client, addon)
+    episode = args.get("episode")
+    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, int(season), int(episode))
 elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
