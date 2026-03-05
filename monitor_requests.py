@@ -15,9 +15,13 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
     page_info = data.get('pageInfo', {})
     total_results = page_info.get('results', len(items))
     total_pages = page_info.get('pages', 1)
+    requestData_radarr = []
+    requestData_sonarr_series = []
     #TODO better pages
-    requestData_radarr = get_radarr_queue_data(radarr_client)
-    requestData_sonarr_series =  get_sonarr_queue_data_series(sonarr_client)
+    if radarr_client is not None:
+     requestData_radarr = get_radarr_queue_data(radarr_client)
+    if sonarr_client is not None:     
+     requestData_sonarr_series =  get_sonarr_queue_data_series(sonarr_client)
     for item in items:
         media = item.get('media', {})
         id = media.get('tmdbId')
@@ -83,13 +87,13 @@ def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, add
         label_text += " " + utils.get_status_label(int(seer_status))
         plot_text = ""
         if seer_status == 3:
-            label_text += f" Status: {arr_status}"
-            plot_text += f" Status: {arr_status},"
+            if arr_status != "":
+             plot_text += f" Status: {arr_status}."
             if arr_status == "downloading":
-                            plot_text += f" Time left: {timeleft} h "
+                            plot_text += f" Time left: {timeleft}h."
                             if size is not None and sizeleft is not None:
                                 sizedone =  size - sizeleft
-                                plot_text += f" {sizedone:.1f} GB / {size:.1f} GB"
+                                plot_text += f" Download progress: {sizedone:.1f} GB / {size:.1f} GB."
         context_menu = []
         if seer_status in [2, 3]:
             context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
@@ -142,8 +146,11 @@ def get_radarr_queue_data(radarr_client):
     return requestData_radarr + requestData_radarr_4k
 
 
-def show_requested_seasons(id, jellyseer_client, addon_handle):
-    xbmcplugin.setContent(addon_handle, 'seasons')
+def show_requested_seasons(id, jellyseer_client, addon_handle, sonarr_enable = False):
+    if sonarr_enable:
+        xbmcplugin.setContent(addon_handle, 'seasons')
+    else:
+        xbmcplugin.setContent(addon_handle, 'files')
     seer_info = jellyseer_client.api_request(f"/tv/{id}")
     media_info = seer_info.get("mediaInfo", [])
     seasons = media_info.get("seasons", []) if media_info else []
@@ -153,11 +160,13 @@ def show_requested_seasons(id, jellyseer_client, addon_handle):
         seer_status = int(season.get("status", 0)) 
         label_text = f"Season {season_number} " + utils.get_status_label(seer_status)
         list_item = xbmcgui.ListItem(label=label_text)
-        list_item.setInfo('video', {
+        url = ""
+        if sonarr_enable:
+            list_item.setInfo('video', {
             'mediatype': 'season',
             'season': season_number
-        })
-        url = build_url({"mode": "showrequestedepisodes", "type": "tv", "id": id, "season": season_number})
+            })
+            url = build_url({"mode": "showrequestedepisodes", "type": "tv", "id": id, "season": season_number})
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
     xbmcplugin.endOfDirectory(addon_handle)
 

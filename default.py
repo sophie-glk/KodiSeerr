@@ -36,9 +36,15 @@ addon_handle = int(sys.argv[1])
 base_url = sys.argv[0]
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
-radarr_client = create_client(RadarrClient)
-sonarr_client = create_client(SonarrClient)
+radarr_client = None
+sonarr_client = None
 enable_ask_4k = addon.getSettingBool('enable_ask_4k')
+enable_radarr = addon.getSettingBool('radarr_enable')
+enable_sonarr = addon.getSettingBool('sonarr_enable')
+if enable_radarr:
+ radarr_client = create_client(RadarrClient)
+if enable_sonarr:
+ sonarr_client = create_client(SonarrClient)
 
 def list_main_menu():
     xbmcplugin.setContent(addon_handle, 'files')
@@ -144,7 +150,7 @@ elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
     id = args.get("id")
-    show_requested_seasons(id, jellyseer_client, addon_handle)
+    show_requested_seasons(id, jellyseer_client, addon_handle, enable_sonarr)
 elif mode == "showrequestedepisodes":
     id = args.get("id")
     season = args.get("season")
