@@ -10,15 +10,15 @@ import json
 addon = xbmcaddon.Addon()
 cache = {}
 cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/cache.json")
-
+cache_id = "c83c803f-b874-4f17-8b1b-079b9694943e"
 
 def load_cache():
     global cache
     window = xbmcgui.Window(10000)
-    cache_string = window.getProperty("seerr_cache")
+    cache_string = window.getProperty(cache_id)
     if cache_string != "" and cache_string is not None:
      try:
-      cache = json.loads(window.getProperty("seerr_cache"))
+      cache = json.loads(window.getProperty(cache_id))
      except:
         return
      
@@ -36,7 +36,7 @@ def load_cache_disk():
 def save_cache():
     if addon.getSettingBool('enable_caching'):
         window = xbmcgui.Window(10000) # Home
-        window.setProperty("seerr_cache",  json.dumps(cache, separators=(',', ':')))
+        window.setProperty(cache_id,  json.dumps(cache, separators=(',', ':')))
 
 def save_cache_disk():
     if addon.getSettingBool('enable_caching'):
@@ -76,10 +76,10 @@ def clear_cache():
 
 def clean_cache():
     window = xbmcgui.Window(10000)
-    cache_string = window.getProperty("seerr_cache") 
+    cache_string = window.getProperty(cache_id) 
     if cache_string != "" and cache_string is not None:
      try:
-      temp_cache = json.loads(window.getProperty("seerr_cache"))
+      temp_cache = json.loads(window.getProperty(cache_id)) 
      except:
         return
      current_time = time.time()
