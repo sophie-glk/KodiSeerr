@@ -8,11 +8,17 @@
     </category>
     <category label="Radarr">
         <setting id="radarr_url" type="text" label="Server URL" default="http://localhost:7878" />
-        <setting id="radarr_api_token" type="text" label="API Token" default="" />
+        <setting id="radarr_api_token" type="text" label="Radarr API Token" default="" />
+        <setting id="radarr_has_4k" type="bool" label="Enable 4k Radarr server support" default=false />
+        <setting id="radarr_url_4k" type="text" label="4k Radarr URL" default="http://localhost:7878" />
+        <setting id="radarr_api_token_4k" type="text" label="4k Radarr API Token" default="" />
     </category>
       <category label="Sonarr">
         <setting id="sonarr_url" type="text" label="Server URL" default="http://localhost:8989" />
-        <setting id="sonarr_api_token" type="text" label="API Token" default="" />
+        <setting id="sonarr_api_token" type="text" label="Server API Token" default="" />
+        <setting id="sonarr_has_4k" type="bool" label="Enable 4k Sonarr server support" default=false />
+        <setting id="sonarr_url_4k" type="text" label="4k Server URL" default="http://localhost:8989" />
+        <setting id="sonarr_api_token_4k" type="text" label="4k Server API Token" default="" />
     </category>
     <category label="Requests">
         <setting id="enable_ask_4k" type="bool" label="Enable asking for 4K" default="true" />

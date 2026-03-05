@@ -28,7 +28,7 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
           show_movie_request(id, mediaData, seer_status, item, requestData_radarr, addon_handle)
         elif(media_type == "tv"):
           show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle)
-          
+
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.endOfDirectory(addon_handle)    
@@ -104,7 +104,10 @@ def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, add
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
 
 def get_sonarr_queue_data_series(sonarr_client):
-    requestData_sonarr = sonarr_client.api_request(f"/queue", params={}).get("records")
+    requestData_sonarr = sonarr_client.api_request(f"/queue", params={}, request_4k=False).get("records")
+    requestData_sonarr_4k = []
+    if sonarr_client.has4k():
+        requestData_sonarr_4k = sonarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
     foundSeriesIds = []
     requestData_sonarr_series = []
     for item in requestData_sonarr:
@@ -114,15 +117,29 @@ def get_sonarr_queue_data_series(sonarr_client):
          tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
          item.update({"tmdbId" : tmdbId})
          requestData_sonarr_series.append(item)
+    for item in requestData_sonarr_4k:
+        seriesId = item.get("seriesId")
+        if seriesId not in foundSeriesIds:
+         foundSeriesIds.append(seriesId)
+         tmdbId = sonarr_client.api_request(f"/series/{seriesId}", request_4k=True).get("tmdbId")
+         item.update({"tmdbId" : tmdbId})
+         requestData_sonarr_series.append(item)
     return requestData_sonarr_series
 
 def get_radarr_queue_data(radarr_client):
     requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
+    requestData_radarr_4k = []
+    if radarr_client.has4k():
+        requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
     for item in requestData_radarr:
         movieId = item.get("movieId")
         tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
         item.update({"tmdbId" : tmdbId})
-    return requestData_radarr
+    for item in requestData_radarr_4k:
+        movieId = item.get("movieId")
+        tmdbId = radarr_client.api_request(f"/movie/{movieId}", request_4k=True).get("tmdbId")
+        item.update({"tmdbId" : tmdbId})
+    return requestData_radarr + requestData_radarr_4k
 
 
 def show_requested_seasons(id, jellyseer_client, addon_handle):
@@ -144,15 +161,15 @@ def show_requested_seasons(id, jellyseer_client, addon_handle):
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
     xbmcplugin.endOfDirectory(addon_handle)
 
-def get_sonarr_episodes(id, season_num, sonarr_client):
-    sonarr_series = sonarr_client.api_request(f"/series")
+def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
+    sonarr_series = sonarr_client.api_request(f"/series", request_4k = use_4k)
     series_id = ""
     for series in sonarr_series:
         tmdbId =  series.get("tmdbId") 
         if int(series.get("tmdbId")) == int(id):
            series_id = series.get("id")
            break
-    episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id})
+    episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = use_4k)
     episode_data = []
     for ep in episodes:
         if int(ep.get("seasonNumber")) != int(season_num):
@@ -163,6 +180,9 @@ def get_sonarr_episodes(id, season_num, sonarr_client):
 def show_requested_episodes(id, season, sonarr_client, addon_handle):
     episodes = get_sonarr_episodes(id, season, sonarr_client)
     sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
+    if sonarr_client.has4k():
+        episodes += get_sonarr_episodes(id, season, sonarr_client, use_4k=True)
+        sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
     for ep in episodes:
         title = ep.get("title")
         ep_number = ep.get("episodeNumber")

@@ -1,6 +1,5 @@
 import urllib.request
 import urllib.error
-import http.cookiejar
 import ssl
 import xbmcaddon
 import xbmc
@@ -10,12 +9,17 @@ import hashlib
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token):
+    def __init__(self, endpoint_url, api_token, endpoint_url_4k = None, api_token_4k=None):
         self.endpoint_url = endpoint_url
         self.api_token = api_token
-        self.cookie_jar = http.cookiejar.CookieJar()
         self.opener = None
         self.name = ""
+        if endpoint_url_4k is not None:
+         self.__has4k = True
+         self.endpoint_url_4k = endpoint_url_4k
+         self.api_token_4k = api_token_4k
+        else:
+         self.__has4k = False
         self.init_opener()
 
     def init_opener(self):
@@ -29,12 +33,19 @@ class ApiClient:
             ssl_context = ssl.create_default_context()
 
         https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-        cookie_handler = urllib.request.HTTPCookieProcessor(self.cookie_jar)
-        self.opener = urllib.request.build_opener(https_handler, cookie_handler)
+        self.opener = urllib.request.build_opener(https_handler)
+    
+    def has4k(self):
+        return self.__has4k
 
-    def api_request(self, endpoint, method="GET", data=None, params=None):
+    def api_request(self, endpoint, method="GET", data=None, params=None, request_4k = False):
         """Sends an authenticated API request to the server."""
-        url = f"{self.endpoint_url}{endpoint}"
+        if not request_4k:
+            token = self.api_token
+            url = f"{self.endpoint_url}{endpoint}"
+        else:
+            token = self.api_token_4k
+            url = f"{self.endpoint_url}{endpoint}"
         data_json = ""
         if params:
             safe_params = {k: str(v) for k, v in params.items()}
@@ -42,13 +53,13 @@ class ApiClient:
         if data is not None:
             data_json = json.dumps(data, separators=(',', ':'))
             data = data_json.encode('utf-8')
-        cache_key = hashlib.sha256(str(url + endpoint + method+ data_json).encode("utf-8")).hexdigest()
+        cache_key = hashlib.sha256(str(url + endpoint + method + data_json + token).encode("utf-8")).hexdigest()
         cached = get_cached(cache_key)
         if cached is not None:
             return cached
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")
-        req.add_header("X-Api-Key", self.api_token)
+        req.add_header("X-Api-Key", token)
         if method == "POST":
             req.add_header("Content-Type", "application/json")   
         try:
