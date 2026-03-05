@@ -1,3 +1,4 @@
+import utils
 import xbmcplugin
 import xbmcgui
 import xbmc
@@ -14,19 +15,61 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
     page_info = data.get('pageInfo', {})
     total_results = page_info.get('results', len(items))
     total_pages = page_info.get('pages', 1)
-
+    #TODO better pages
     requestData_radarr = get_radarr_queue_data(radarr_client)
     requestData_sonarr_series =  get_sonarr_queue_data_series(sonarr_client)
     for item in items:
         media = item.get('media', {})
         id = media.get('tmdbId')
+        seer_status = media.get('status')
+        media_type = media.get('mediaType')
+        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
+        if(media_type == "movie"):
+          show_movie_request(id, mediaData, seer_status, item, requestData_radarr, addon_handle)
+        elif(media_type == "tv"):
+          show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle)
+          
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    xbmcplugin.endOfDirectory(addon_handle)    
+
+def show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle):
+        arr_status = ""
+        timeleft = ""
+        if seer_status in [2,3]:
+         for item in  requestData_sonarr_series:
+          if item.get("tmdbId") == id:
+             try:
+                 timeleft = item.get("timeleft")
+             except:
+                 continue
+        request_id = item.get('id')
+        label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
+        label_text += " " + utils.get_status_label(int(seer_status))
+        plot_text = ""
+        if seer_status == 3:
+            if arr_status == "downloading":
+                            plot_text += f" Time left: {timeleft} h,"
+        context_menu = []
+        if seer_status in [2, 3]:
+            context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
+        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": "tv", "id": id})})'))
+        url =  build_url({'mode': "showrequestedseasons", "id": id }) 
+        list_item = xbmcgui.ListItem(label=label_text)
+        list_item.addContextMenuItems(context_menu)
+        info = {'title': label_text, 'plot': plot_text}
+        set_info_tag(list_item, info)
+        art = make_art(mediaData)
+        list_item.setArt(art)
+        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
+    
+def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, addon_handle):
         size = None
         sizeleft = None
         arr_status = ""
         timeleft = ""
-        seer_status = media.get('status')
         if seer_status in [2,3]:
-         for item in requestData_radarr + requestData_sonarr_series:
+         for item in requestData_radarr:
           if item.get("tmdbId") == id:
              try:
                  size = float(item.get("size"))/(1024**3)
@@ -35,37 +78,23 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
                  timeleft = item.get("timeleft")
              except:
                  continue
-        media_type = media.get('mediaType')
         request_id = item.get('id')
-        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
-        if not mediaData:
-            continue
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
+        label_text += " " + utils.get_status_label(int(seer_status))
         plot_text = ""
-        if seer_status == 2:
-            label_text += " [COLOR yellow](Pending)[/COLOR]"
-        elif seer_status == 3:
-            label_text += " [COLOR cyan](Processing)[/COLOR]"
+        if seer_status == 3:
             label_text += f" Status: {arr_status}"
             plot_text += f" Status: {arr_status},"
-            if arr_status == "downloading" and media_type == "movie":
-                            plot_text += f" Time left: {timeleft} h,"
+            if arr_status == "downloading":
+                            plot_text += f" Time left: {timeleft} h "
                             if size is not None and sizeleft is not None:
                                 sizedone =  size - sizeleft
                                 plot_text += f" {sizedone:.1f} GB / {size:.1f} GB"
-        elif seer_status == 4:
-            label_text += " [COLOR lime](Partially Available)[/COLOR]"
-        elif seer_status == 5:
-            label_text += " [COLOR lime](Available)[/COLOR]"
-
         context_menu = []
         if seer_status in [2, 3]:
             context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
-        if media_type == "movie":
-           url = build_url({'mode': 'request', 'type': media_type, 'id': id})
-        else:
-           url =  build_url({'mode': "showrequestedseasons", "id": id }) 
+        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": "movie", "id": id})})'))
+        url = build_url({'mode': 'request', 'type': "movie", 'id': id})
         list_item = xbmcgui.ListItem(label=label_text)
         list_item.addContextMenuItems(context_menu)
         info = {'title': label_text, 'plot': plot_text}
@@ -73,16 +102,6 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
         art = make_art(mediaData)
         list_item.setArt(art)
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)
-
-    if current_page < total_pages:
-        next_page_url = build_url({'mode': mode, 'page': current_page + 1})
-        next_item = xbmcgui.ListItem(label=f'[B]Next Page ({current_page + 1}) >>[/B]')
-        next_item.setArt({'icon': 'DefaultVideoPlaylists.png'})
-        xbmcplugin.addDirectoryItem(addon_handle, next_page_url, next_item, True)
-    
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.endOfDirectory(addon_handle)    
 
 def get_sonarr_queue_data_series(sonarr_client):
     requestData_sonarr = sonarr_client.api_request(f"/queue", params={}).get("records")
@@ -114,16 +133,8 @@ def show_requested_seasons(id, jellyseer_client, addon_handle):
     xbmc.log(f"DEBUG KODISEERR: Response: {media_info}", level=xbmc.LOGERROR)         
     for season in seasons :
         season_number = season.get("seasonNumber", 0)
-        label_text = f"Season {season_number}"
         seer_status = int(season.get("status", 0)) 
-        if seer_status == 2:
-            label_text += " [COLOR yellow](Pending)[/COLOR]"
-        elif seer_status == 3:
-            label_text += " [COLOR cyan](Processing)[/COLOR]"
-        elif seer_status == 4:
-            label_text += " [COLOR lime](Partially Available)[/COLOR]"
-        elif seer_status == 5:
-            label_text += " [COLOR lime](Available)[/COLOR]"
+        label_text = f"Season {season_number} " + utils.get_status_label(seer_status)
         list_item = xbmcgui.ListItem(label=label_text)
         list_item.setInfo('video', {
             'mediatype': 'season',
