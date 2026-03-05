@@ -9,10 +9,7 @@ def do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon):
     """Handle media request with advanced options"""
     # Check if already requested/available
     status = get_media_status(media_type, id, jellyseer_client)
-    if status >= 5:
-        if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already available. Request anyway?'):
-            return
-    elif status in [2, 3, 4]:
+    if status in [2, 3, 4] or status >= 5:
         if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
             return
     seasons_to_request = []
@@ -24,21 +21,19 @@ def do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon):
      elif selected_tv_request_type == 0:
          if season:
              seasons_to_request = [int(season)]
-         #TODO ERROR
      else:
          seasons_to_request = "all"
+    
     is4k = False
     quality_profile = None
-
     if enable_ask_4k:
         preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
         prefs = load_preferences(preferences_path)
         if addon.getSettingBool('remember_last_quality') and 'last_4k_choice' in prefs:
             is4k = prefs['last_4k_choice']
         else:
-            if xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?'):
-                is4k = True
-        
+            is4k = xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?')
+
         if addon.getSettingBool('remember_last_quality'):
             prefs['last_4k_choice'] = is4k
             save_preferences(prefs, preferences_path)
@@ -50,6 +45,7 @@ def do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon):
             selected = xbmcgui.Dialog().select('Select Quality Profile', profile_names)
             if selected >= 0:
                 quality_profile = profiles[selected][0]
+
     if addon.getSettingBool('confirm_before_request'):
         title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
         title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
@@ -68,7 +64,7 @@ def do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon):
     
     if media_type == "tv":
         payload["seasons"] = seasons_to_request
-    
+
     if quality_profile:
         payload["profileId"] = quality_profile
     
@@ -77,8 +73,6 @@ def do_request(media_type, id, season, enable_ask_4k, jellyseer_client, addon):
         xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
     except Exception as e:
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
-    
-    xbmc.executebuiltin("Action(Back)")
 
 def do_request_as_player(media_type, season_arg, id, addon_handle):
     #immediately tell kodi that we are done with playback, this prevents time outs
