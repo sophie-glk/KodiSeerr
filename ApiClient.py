@@ -40,7 +40,7 @@ class ApiClient:
             safe_params = {k: str(v) for k, v in params.items()}
             url += '?' + urlencode(safe_params, quote_via=quote)
         if data is not None:
-            data_json = json.dumps(data)
+            data_json = json.dumps(data, separators=(',', ':'))
             data = data_json.encode('utf-8')
         cache_key = hashlib.sha256(str(url + endpoint + method+ data_json).encode("utf-8")).hexdigest()
         cached = get_cached(cache_key)

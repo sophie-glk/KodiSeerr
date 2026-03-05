@@ -36,7 +36,7 @@ def load_cache_disk():
 def save_cache():
     if addon.getSettingBool('enable_caching'):
         window = xbmcgui.Window(10000) # Home
-        window.setProperty("seerr_cache",  json.dumps(cache))
+        window.setProperty("seerr_cache",  json.dumps(cache, separators=(',', ':')))
 
 def save_cache_disk():
     if addon.getSettingBool('enable_caching'):
