@@ -2,19 +2,16 @@ import sys
 from favorites import add_to_favorites, list_favorites, remove_from_favorites
 from list_collections import list_collections, show_collection_details
 from list_recently_added import list_recently_added
-from request import do_request, do_request_as_player
+from request import do_request
 from show_details import show_details
 from test_connection import test_connection
-from utils import build_url, jump_to_page, make_art, make_info, set_info_tag
+from utils import build_url, jump_to_page
 import xbmc
 import xbmcplugin
 import xbmcgui
 import xbmcaddon
 import xbmcvfs
 import urllib.parse
-import json
-import os
-import time
 from create_client import create_client
 from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
@@ -33,6 +30,8 @@ favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.get
 preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
 addon = xbmcaddon.Addon()
 addon_handle = int(sys.argv[1])
+addon_path = addon.getAddonInfo('path')
+
 base_url = sys.argv[0]
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
@@ -125,7 +124,7 @@ elif mode == "show_details":
 elif mode == "report_issue":
     report_issue(args.get('type'), args.get('id'))
 elif mode == "cancel_request":
-    cancel_request(args.get('request_id'))
+    cancel_request(args.get('request_id'), jellyseer_client)
 elif mode == "jump_to_page":
     jump_to_page(args)
 elif mode == "collections":
@@ -139,14 +138,12 @@ elif mode == "search":
     search_string = args.get("query")
     show_status = addon.getSettingBool('show_request_status')
     search(search_string, jellyseer_client, show_status, addon_handle)
-elif mode == "playerrequest":
-    do_request_as_player(args.get('type'), args.get('id'), args.get("season"), args.get("episode"), addon_handle)
 elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")
     season = args.get("season")
     episode = args.get("episode")
-    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, int(season), int(episode))
+    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, season, episode)
 elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
