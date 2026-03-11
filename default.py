@@ -141,9 +141,10 @@ elif mode == "search":
 elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")
-    season = args.get("season")
-    episode = args.get("episode")
-    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, season, episode)
+    season = int(args.get("season", -1))
+    episode = int(args.get("episode", -1))
+    skip_dialog = args.get("skip_dialog", False)
+    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, season, episode, skip_dialog)
 elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":

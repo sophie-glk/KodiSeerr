@@ -5,29 +5,71 @@ import xbmcvfs
 import xbmcplugin
 import os
 import json
-def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client = None, season = 0, episode_number = 0):
+
+def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
     status = get_media_status(media_type, id, jellyseer_client)
     if status in [2, 3, 4] or status >= 5:
         if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
             return
-    seasons_to_request = []
-    request_single_episode = False
-    tv_request_types = ["Request this season", "Request all seasons"]
-    if sonarr_client is not None:
-        tv_request_types.append("Request this episode")
-    if media_type == "tv":    
-     selected_tv_request_type = xbmcgui.Dialog().select("Seerr Request", tv_request_types)
-     if selected_tv_request_type < 0:
-         return
-     elif selected_tv_request_type == 0:
-         if season:
-             seasons_to_request = [int(season)]
-     elif selected_tv_request_type == 2:
-         request_single_episode = True
-     else:
-         seasons_to_request = "all"
     
+    seasons_to_request = [season]
+    tv_request_types = []
+    confirm_string = ""
+    if media_type == "tv" and not skip_dialog:
+     if season > -1:
+        tv_request_types.append(f"Request this season (Season {season})")    
+     if sonarr_client is not None and episode_number > -1:
+        tv_request_types.append("Request this episode")         
+     tv_request_types += [ "Request all seasons", "Choose a season to request"]
+     if sonarr_client is not None:
+        tv_request_types.append("Choose an episode to request")     
+     selected_tv_request_nr = xbmcgui.Dialog().select("Seerr Request", tv_request_types)
+     if selected_tv_request_nr < 0:
+         return
+     selected_tv_request_type = tv_request_types[selected_tv_request_nr]
+     if selected_tv_request_type == "Request this episode":
+         media_type = "episode"
+     elif selected_tv_request_type == f"Request this season ({season})":
+         seasons_to_request = [season]
+         confirm_string = f"Season {season}"
+     elif selected_tv_request_type == f"Request all seasons":
+         seasons_to_request = "all"
+         confirm_string = f"(All seasons)"
+     elif selected_tv_request_type == f"Choose a season to request":
+         seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         season_list = []
+         for seas in seasons:
+            season_list.append(str(seas.get("seasonNumber", -1)))
+         selected_nr = xbmcgui.Dialog().select("Season", season_list)
+         if selected_nr == -1:
+                 return
+         season_nr = int(season_list[selected_nr])
+         seasons_to_request = [season_nr]
+         confirm_string = f"Season {season_nr}"         
+     elif selected_tv_request_type == "Choose an episode to request":
+         seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         season_list = []
+         for seas in seasons:
+             season_list.append(str(seas.get("seasonNumber", -1)))
+         selected = xbmcgui.Dialog().select("Season", season_list)
+         if selected == -1:
+             return
+         selected_season = int(season_list[selected])
+         seasons_to_request = [selected_season]
+         episodes = jellyseer_client.api_request(f"/tv/{id}/season/{selected_season}").get("episodes", [])
+         episode_list = []
+         for ep in episodes:
+             ep_nr = ep.get("episodeNumber", "")
+             item = xbmcgui.ListItem(label=f"Episode {ep_nr}: {ep.get("name")}")
+             item.setProperty('ep_nr', str(ep_nr))
+             episode_list.append(item)
+         selected = xbmcgui.Dialog().select("Episode", episode_list)
+         if selected == -1:
+             return
+         episode_number = int(episode_list[selected].getProperty("ep_nr"))
+         media_type = "episode"
+                       
     is4k = False
     quality_profile = None
     if enable_ask_4k:
@@ -44,7 +86,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
     confirm_before_request = addon.getSettingBool('confirm_before_request')
     show_quality_profiles = addon.getSettingBool('show_quality_profiles')
 
-    if request_single_episode:
+    if media_type == "episode":
         request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request)
         return
 
@@ -59,7 +101,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
     if confirm_before_request:
         title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
         title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
-        msg = f"Request {title}"
+        msg = f"Request {title} {confirm_string}"
         if is4k:
             msg += " in 4K"
         msg += "?"
@@ -86,6 +128,9 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
 
 def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request):
       series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
+      if not series_data:
+          xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
+          return
       #if the show is missing we have to add it.
       series_id = series_data.get("id")
       if series_id == None:
@@ -96,6 +141,7 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
                     seerr_sonarr_settings = instance
                     break          
             if not seerr_sonarr_settings:
+                xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed.', xbmcgui.NOTIFICATION_ERROR, 4000)
                 return
             series_data["RootFolderPath"] = seerr_sonarr_settings.get("activeDirectory")
             series_data["QualityProfileId"] = seerr_sonarr_settings.get("activeProfileId")
@@ -106,7 +152,9 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
             series_id = response.get("id")
             xbmc.sleep(1000) # wait for sonarr to add the show
       episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = is4k)
-      xbmc.log(f"[KodiSeerr] Episode: {episodes}", xbmc.LOGERROR)
+      if not episodes:
+          xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
+          return
       episode_id =[]
       episode_title = ""
       for ep in episodes:
@@ -122,19 +170,7 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
             return
       sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
-
-
-def do_request_as_player(media_type, id, season_number, episode_number, addon_handle):
-    #immediately tell kodi that we are done with playback, this prevents time outs
-    item = xbmcgui.ListItem()
-    item.setProperty('IsPlayable', 'true')
-    item.setMimeType('audio/mpeg')
-    xbmcplugin.setResolvedUrl(addon_handle, False, item)
-    season = "all"
-    if season_number != None:
-        season = season_number
-    url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number})
-    xbmc.executebuiltin(f'RunPlugin({url})')
+      xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
 
 def get_quality_profiles(jellyseer_client):
     """Get available quality profiles from server"""
