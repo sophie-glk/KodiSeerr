@@ -35,7 +35,7 @@ class ApiClient:
     def has4k(self):
         return self.__has4k
 
-    def api_request(self, endpoint, method="GET", data=None, params=None, request_4k = False):
+    def api_request(self, endpoint, method="GET", data=None, params=None, request_4k = False, use_cache = True):
         """Sends an authenticated API request to the server."""
         if not request_4k:
             token = self.api_token
@@ -50,9 +50,10 @@ class ApiClient:
         if data is not None:
             data_json = json.dumps(data, separators=(',', ':'))
             data = data_json.encode('utf-8')
-        cache_key = hashlib.sha256(str(url + endpoint + method + data_json + token).encode("utf-8")).hexdigest()
-        cached = get_cached(cache_key)
-        if cached is not None:
+        if use_cache:
+         cache_key = hashlib.sha256(str(url + endpoint + method + data_json + token).encode("utf-8")).hexdigest()
+         cached = get_cached(cache_key)
+         if cached is not None:
             return cached
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")
@@ -62,7 +63,8 @@ class ApiClient:
         try:
             with self.opener.open(req) as resp:
                 response = json.loads(resp.read().decode())
-                set_cached(cache_key, response)
+                if use_cache:
+                 set_cached(cache_key, response)
                 return response
         except urllib.error.HTTPError as e:
             error_body = e.read().decode() if e.fp else ""
