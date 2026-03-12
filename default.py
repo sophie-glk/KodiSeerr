@@ -159,7 +159,7 @@ elif mode == "showrequestedseasons":
 elif mode == "showrequestedepisodes":
     id = args.get("id")
     season = args.get("season")
-    show_requested_episodes(id=id, season=season, sonarr_client=sonarr_client, addon_handle=addon_handle)
+    show_requested_episodes(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
 clean_cache()
 save_cache()
         
