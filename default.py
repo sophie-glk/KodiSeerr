@@ -137,13 +137,14 @@ elif mode == "recently_added":
 elif mode == "search":
     search_string = args.get("query")
     show_status = addon.getSettingBool('show_request_status')
-    search(search_string, jellyseer_client, show_status, addon_handle)
+    external_keyboard = args.get("ext_keyboard", False)
+    search(search_string, jellyseer_client, show_status, addon_handle, external_keyboard=bool(external_keyboard))
 elif mode == "handle_search_item":
     handle_search_item( args.get("type"), args.get("id"), jellyseer_client)
 elif mode == "handle_search_season":
     handle_search_season(args.get("id"), jellyseer_client, addon_handle)
 elif mode == "handle_search_episode":
-    handle_search_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)   
+    handle_search_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)  
 elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")

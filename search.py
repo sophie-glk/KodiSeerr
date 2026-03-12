@@ -6,11 +6,12 @@ from utils import make_info
 from utils import get_media_status
 from utils import build_url
 from utils import set_info_tag
-def search(search_string, jellyseer_client, show_status, addon_handle, media_type = "all"):
-    xbmcplugin.setContent(addon_handle, 'videos')
-    if not search_string:
+def search(search_string, jellyseer_client, show_status, addon_handle, external_keyboard = False):
+    #make sure we get new search item by avoiding caching
+    if not search_string and not external_keyboard:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
+        xbmcplugin.setContent(addon_handle, 'videos')
         xbmcgui.Dialog().notification('KodiSeerr', search_string, xbmcgui.NOTIFICATION_INFO)
         data = jellyseer_client.api_request('/search', params={'query': search_string})
         results = data.get('results', []) if data else []
@@ -40,11 +41,11 @@ def search(search_string, jellyseer_client, show_status, addon_handle, media_typ
             set_info_tag(list_item, info)
             list_item.setArt(art)
             xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
-    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
-    xbmcplugin.endOfDirectory(addon_handle)
-
+        xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
+        xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+        xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+ 
 def handle_search_item(media_type, id, jellyseer_client):
     if media_type != "tv":
         xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id})})')
@@ -76,5 +77,5 @@ def handle_search_episodes(id, season, jellyseer_client, addon_handle):
         list_item.setArt({'icon': ep.get("stillPath")})
         xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "request", "season": season, "type": "tv", "episode": ep.get("episodeNumber"), "id": id }), list_item, True)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
-    xbmcplugin.endOfDirectory(addon_handle)    
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
     
