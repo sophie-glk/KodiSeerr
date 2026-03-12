@@ -1,20 +1,20 @@
 import xbmcplugin
 import xbmcgui
 import xbmc
-from utils import get_status_label, make_art
+from utils import add_next_page_button, get_status_label, make_art
 from utils import make_info
 from utils import get_media_status
 from utils import build_url
 from utils import set_info_tag
-def search(search_string, jellyseer_client, show_status, addon_handle, external_keyboard = False):
+def search(search_string, jellyseer_client, show_status, addon_handle, page = 1, external_keyboard = False):
     #make sure we get new search item by avoiding caching
     if not search_string and not external_keyboard:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
         xbmcplugin.setContent(addon_handle, 'videos')
-        xbmcgui.Dialog().notification('KodiSeerr', search_string, xbmcgui.NOTIFICATION_INFO)
-        data = jellyseer_client.api_request('/search', params={'query': search_string})
+        data = jellyseer_client.api_request('/search', params={'query': search_string, "page": page})
         results = data.get('results', []) if data else []
+        total_pages = data.get("totalPages", 1)
         for item in results:
             media_type = item.get('mediaType', 'movie')
             title = item.get('title') or item.get('name')
@@ -44,7 +44,12 @@ def search(search_string, jellyseer_client, show_status, addon_handle, external_
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
+        add_next_page_button({"mode": "search", "query": search_string}, page, total_pages, addon_handle)
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+    else:
+        xbmcplugin.setContent(addon_handle, 'files')
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+        xbmc.executebuiltin('Action(Back)')
  
 def handle_search_item(media_type, id, jellyseer_client):
     if media_type != "tv":
@@ -75,7 +80,7 @@ def handle_search_episodes(id, season, jellyseer_client, addon_handle):
         list_item = xbmcgui.ListItem(label=ep.get("name"))
         list_item.setInfo("video",  {'title': ep.get("name"), "episode": ep.get("episodeNumber"), "season": season,  'plot': ep.get("overview"), 'mediatype': 'episode'})
         list_item.setArt({'icon': ep.get("stillPath")})
-        xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "request", "season": season, "type": "tv", "episode": ep.get("episodeNumber"), "id": id }), list_item, True)
+        xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "request", "season": season, "type": "tv", "episode": ep.get("episodeNumber"), "id": id, "go_back": True }), list_item, False)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
     

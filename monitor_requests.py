@@ -2,19 +2,16 @@ import utils
 import xbmcplugin
 import xbmcgui
 import xbmc
-from utils import build_url
+from utils import add_next_page_button, build_url
 from utils import set_info_tag
 from utils import make_art
-def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_client, addon_handle):
+def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, pagesize = 5):
     """Display user's requests with pagination"""
     xbmcplugin.setContent(addon_handle, 'videos')
-    take = 20
-    skip = (current_page - 1) * take
-    data = jellyseer_client.api_request("/request", params={"take": take, "skip": skip, "sort": "added", "filter": "all"})
+    skip = (page - 1) * pagesize
+    data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": skip, "sort": "added", "filter": "all"})
     items = data.get('results', []) if data else []
-    page_info = data.get('pageInfo', {})
-    total_results = page_info.get('results', len(items))
-    total_pages = page_info.get('pages', 1)
+
     requestData_radarr = []
     requestData_sonarr_series = []
     #TODO better pages
@@ -32,9 +29,12 @@ def show_requests(mode, current_page, jellyseer_client, radarr_client, sonarr_cl
           show_movie_request(id, mediaData, seer_status, item, requestData_radarr, addon_handle)
         elif(media_type == "tv"):
           show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle)
-
+    
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    page_info = data.get('pageInfo', {})
+    total_pages = page_info.get('pages', 1)
+    add_next_page_button({"mode": "requests"}, page, total_pages, addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)    
 
 def show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle):

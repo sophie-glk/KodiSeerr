@@ -298,3 +298,13 @@ def jump_to_page(args):
             xbmc.executebuiltin(f'Container.Update({build_url(params)})')
         except ValueError:
             xbmcgui.Dialog().notification('KodiSeerr', 'Invalid page number', xbmcgui.NOTIFICATION_ERROR)
+
+def add_next_page_button(url_dict, page, total_pages, addon_handle):
+  if page >= total_pages:
+      return
+  url_dict['page'] = page + 1
+  button = xbmcgui.ListItem(label="Next Page")
+  #art = make_art("")
+  #button.setArt(art)
+  xbmcplugin.addDirectoryItem(addon_handle, build_url(url_dict), button, True)
+     

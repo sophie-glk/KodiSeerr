@@ -6,11 +6,12 @@ import xbmcplugin
 import os
 import json
 
-def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
+def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
     status = get_media_status(media_type, id, jellyseer_client)
     if status in [2, 3, 4] or status >= 5:
         if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
+            xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
             return
     
     seasons_to_request = [season]
@@ -25,8 +26,11 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
      if sonarr_client is not None:
         tv_request_types.append("Choose an episode to request")     
      selected_tv_request_nr = xbmcgui.Dialog().select("Seerr Request", tv_request_types)
-     if selected_tv_request_nr < 0:
+
+     if selected_tv_request_nr == -1:
+         xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
          return
+     
      selected_tv_request_type = tv_request_types[selected_tv_request_nr]
      if selected_tv_request_type == "Request this episode":
          media_type = "episode"
@@ -54,6 +58,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
              season_list.append(str(seas.get("seasonNumber", -1)))
          selected = xbmcgui.Dialog().select("Season", season_list)
          if selected == -1:
+             xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
              return
          selected_season = int(season_list[selected])
          seasons_to_request = [selected_season]
@@ -66,6 +71,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
              episode_list.append(item)
          selected = xbmcgui.Dialog().select("Episode", episode_list)
          if selected == -1:
+             xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
              return
          episode_number = int(episode_list[selected].getProperty("ep_nr"))
          media_type = "episode"
@@ -87,7 +93,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
     show_quality_profiles = addon.getSettingBool('show_quality_profiles')
 
     if media_type == "episode":
-        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request)
+        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle)
         return
 
     if show_quality_profiles:
@@ -106,6 +112,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
             msg += " in 4K"
         msg += "?"
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
+            xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
             return
     
     payload = {
@@ -126,7 +133,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_cl
     except Exception as e:
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
 
-def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request):
+def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle):
       series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
       if not series_data:
           xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
@@ -168,6 +175,7 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
             msg += " in 4K"
         msg += "?"
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
+            xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
             return
       sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
       xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)

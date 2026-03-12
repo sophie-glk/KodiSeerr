@@ -96,14 +96,7 @@ def report_issue(media_type, media_id):
         xbmcgui.Dialog().notification('KodiSeerr', 'Failed to report issue', xbmcgui.NOTIFICATION_ERROR)
 
 mode = args.get('mode')
-page = args.get('page')
-if not page:
-    page = 1
-else:
-    try:
-        page = int(page)
-    except (ValueError, TypeError):
-        page = 1
+page = int(args.get('page', 1))
 
 if not mode:
     list_main_menu()
@@ -138,7 +131,7 @@ elif mode == "search":
     search_string = args.get("query")
     show_status = addon.getSettingBool('show_request_status')
     external_keyboard = args.get("ext_keyboard", False)
-    search(search_string, jellyseer_client, show_status, addon_handle, external_keyboard=bool(external_keyboard))
+    search(search_string, jellyseer_client, show_status, addon_handle, page=page, external_keyboard=bool(external_keyboard))
 elif mode == "handle_search_item":
     handle_search_item( args.get("type"), args.get("id"), jellyseer_client)
 elif mode == "handle_search_season":
@@ -151,7 +144,7 @@ elif mode == "request":
     season = int(args.get("season", -1))
     episode = int(args.get("episode", -1))
     skip_dialog = args.get("skip_dialog", False)
-    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, sonarr_client, season, episode, skip_dialog)
+    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client, season, episode, skip_dialog)
 elif mode == "requests":
     show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
 elif mode == "showrequestedseasons":
