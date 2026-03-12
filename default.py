@@ -21,7 +21,7 @@ from monitor_requests import show_requested_episodes
 from monitor_requests import show_requests
 from monitor_requests import show_requested_seasons
 from monitor_requests import cancel_request
-from search import search
+from search import handle_search_episodes, handle_search_item, handle_search_season, search
 from statistics import show_statistics
 
 load_cache()
@@ -138,6 +138,12 @@ elif mode == "search":
     search_string = args.get("query")
     show_status = addon.getSettingBool('show_request_status')
     search(search_string, jellyseer_client, show_status, addon_handle)
+elif mode == "handle_search_item":
+    handle_search_item( args.get("type"), args.get("id"), jellyseer_client)
+elif mode == "handle_search_season":
+    handle_search_season(args.get("id"), jellyseer_client, addon_handle)
+elif mode == "handle_search_episode":
+    handle_search_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)   
 elif mode == "request":
     media_type = args.get("type")
     id = args.get("id")

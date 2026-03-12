@@ -1,18 +1,19 @@
 import xbmcplugin
 import xbmcgui
+import xbmc
 from utils import get_status_label, make_art
 from utils import make_info
 from utils import get_media_status
 from utils import build_url
 from utils import set_info_tag
-def search(search_string, jellyseer_client, show_status, addon_handle):
+def search(search_string, jellyseer_client, show_status, addon_handle, media_type = "all"):
     xbmcplugin.setContent(addon_handle, 'videos')
     if not search_string:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
+        xbmcgui.Dialog().notification('KodiSeerr', search_string, xbmcgui.NOTIFICATION_INFO)
         data = jellyseer_client.api_request('/search', params={'query': search_string})
         results = data.get('results', []) if data else []
-        
         for item in results:
             media_type = item.get('mediaType', 'movie')
             title = item.get('title') or item.get('name')
@@ -31,7 +32,7 @@ def search(search_string, jellyseer_client, show_status, addon_handle):
             context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": item.get("id")})})'))
             context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": item.get("id")})})'))
             
-            url = build_url({'mode': 'request', 'type': media_type, 'id': item.get('id')})
+            url = build_url({'mode': 'handle_search_item', 'type': media_type, 'id': item.get('id')})
             list_item = xbmcgui.ListItem(label=full_title)
             list_item.addContextMenuItems(context_menu)
             info = make_info(item, media_type)
@@ -43,3 +44,37 @@ def search(search_string, jellyseer_client, show_status, addon_handle):
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
     xbmcplugin.endOfDirectory(addon_handle)
+
+def handle_search_item(media_type, id, jellyseer_client):
+    if media_type != "tv":
+        xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id})})')
+        return
+    name = jellyseer_client.api_request(f"/tv/{id}").get("name")
+    selected = xbmcgui.Dialog().select(name, ["Request", "Browse"])
+    if selected == -1:
+        return
+    elif selected == 0:
+        xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id})})')
+        return
+    xbmc.executebuiltin(f'Container.Update({build_url({"mode": "handle_search_season", "type": media_type, "id": id})})')
+
+def handle_search_season(id, jellyseer_client, addon_handle):
+    seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons")
+    xbmcplugin.setContent(addon_handle, 'seasons')
+    for season in seasons:
+        list_item = xbmcgui.ListItem(label = season.get("name"))
+        list_item.setInfo("video",  {'title': season.get("name"), "season": season.get("seasonNumber"), 'mediatype': 'season'})
+        xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "handle_search_episode", "id": id, "season": season.get("seasonNumber")}) , list_item, True)
+    xbmcplugin.endOfDirectory(addon_handle)  
+
+def handle_search_episodes(id, season, jellyseer_client, addon_handle):
+    episodes = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
+    xbmcplugin.setContent(addon_handle, 'seasons')
+    for ep in episodes:
+        list_item = xbmcgui.ListItem(label=ep.get("name"))
+        list_item.setInfo("video",  {'title': ep.get("name"), "episode": ep.get("episodeNumber"), "season": season,  'plot': ep.get("overview"), 'mediatype': 'episode'})
+        list_item.setArt({'icon': ep.get("stillPath")})
+        xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "request", "season": season, "type": "tv", "episode": ep.get("episodeNumber"), "id": id }), list_item, True)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
+    xbmcplugin.endOfDirectory(addon_handle)    
+    
