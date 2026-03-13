@@ -3,6 +3,7 @@ from delete_file import delete_file
 from favorites import add_to_favorites, list_favorites, remove_from_favorites
 from list_collections import list_collections, show_collection_details
 from list_recently_added import list_recently_added
+from main_menu import main_menu
 from play_local_file import play_local_file
 from request import do_request
 from show_details import show_details
@@ -47,38 +48,6 @@ if enable_radarr:
 if enable_sonarr:
  sonarr_client = create_client(SonarrClient)
 
-def list_main_menu():
-    xbmcplugin.setContent(addon_handle, 'files')
-    items = [
-        ('recently_added', 'Recently Added', 'DefaultRecentlyAddedMovies.png', True),
-        ('collections', 'Collections', 'DefaultSets.png', True),
-        (None, None, None, False),
-        ('favorites', 'My Favorites', 'DefaultFavourites.png', True),
-        ('requests', 'Request Progress', 'DefaultInProgressShows.png', True),
-        ('statistics', 'Statistics', 'DefaultAddonInfoProvider.png', False),
-        (None, None, None, False),
-        ('search', 'Search', 'DefaultAddonsSearch.png', True),
-        ('test_connection', 'Test Connection', 'DefaultAddonService.png', False),
-    ]
-    
-    for item in items:
-        if item[0] is None:
-            continue
-        mode, label, icon, is_folder = item
-        list_item = xbmcgui.ListItem(label)
-        list_item.setArt({'icon': icon, 'thumb': icon})
-        
-        if mode == 'genres_movie':
-            url = build_url({'mode': 'genres', 'media_type': 'movie'})
-        elif mode == 'genres_tv':
-            url = build_url({'mode': 'genres', 'media_type': 'tv'})
-        else:
-            url = build_url({'mode': mode})
-        
-        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, is_folder)
-    
-    xbmcplugin.endOfDirectory(addon_handle)
-
 def report_issue(media_type, media_id):
     """Report an issue with media"""
     issue_types = ['Video Issue', 'Audio Issue', 'Subtitles Issue', 'Other']
@@ -101,7 +70,7 @@ mode = args.get('mode')
 page = int(args.get('page', 1))
 
 if not mode:
-    list_main_menu()
+    main_menu(addon_handle)
 elif mode == "test_connection":
     test_connection()
 elif mode == "clear_cache":
