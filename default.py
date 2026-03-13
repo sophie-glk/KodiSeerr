@@ -5,6 +5,7 @@ from list_collections import list_collections, show_collection_details
 from list_recently_added import list_recently_added
 from main_menu import main_menu
 from play_local_file import play_local_file
+from report_issue import report_issue
 from request import do_request
 from show_details import show_details
 from test_connection import test_connection
@@ -47,24 +48,6 @@ if enable_radarr:
  radarr_client = create_client(RadarrClient)
 if enable_sonarr:
  sonarr_client = create_client(SonarrClient)
-
-def report_issue(media_type, media_id):
-    """Report an issue with media"""
-    issue_types = ['Video Issue', 'Audio Issue', 'Subtitles Issue', 'Other']
-    selected = xbmcgui.Dialog().select('Select Issue Type', issue_types)
-    if selected < 0:
-        return
-    message = xbmcgui.Dialog().input('Describe the issue (optional)')
-    try:
-        payload = {
-            "issueType": selected + 1,
-            "message": message or ""
-        }
-        jellyseer_client.api_request(f"/{media_type}/{media_id}/issue", method="POST", data=payload)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Issue reported', xbmcgui.NOTIFICATION_INFO)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Failed to report issue', xbmcgui.NOTIFICATION_ERROR)
 
 mode = args.get('mode')
 page = int(args.get('page', 1))
