@@ -5,11 +5,11 @@ import xbmc
 from utils import add_next_page_button, build_url
 from utils import set_info_tag
 from utils import make_art
-def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, pagesize = 5):
+def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, pagesize = 25):
     """Display user's requests with pagination"""
     xbmcplugin.setContent(addon_handle, 'videos')
     skip = (page - 1) * pagesize
-    data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": skip, "sort": "added", "filter": "all"})
+    data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": skip, "sort": "added", "filter": "all"}, use_cache = False)
     items = data.get('results', []) if data else []
 
     requestData_radarr = []
@@ -35,7 +35,7 @@ def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, ad
     page_info = data.get('pageInfo', {})
     total_pages = page_info.get('pages', 1)
     add_next_page_button({"mode": "requests"}, page, total_pages, addon_handle)
-    xbmcplugin.endOfDirectory(addon_handle)    
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
 
 def show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle):
         arr_status = ""
@@ -104,10 +104,10 @@ def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, add
         xbmcplugin.addDirectoryItem(addon_handle, get_url_by_status(seer_status, id, request_id, "movie"), list_item, is_directory(seer_status))
 
 def get_sonarr_queue_data_series(sonarr_client):
-    requestData_sonarr = sonarr_client.api_request(f"/queue", params={}, request_4k=False).get("records")
+    requestData_sonarr = sonarr_client.api_request(f"/queue", params={}, request_4k=False, use_cache = False).get("records")
     requestData_sonarr_4k = []
     if sonarr_client.has4k():
-        requestData_sonarr_4k = sonarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
+        requestData_sonarr_4k = sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache = False).get("records")
     foundSeriesIds = []
     requestData_sonarr_series = []
     for item in requestData_sonarr:
@@ -127,10 +127,10 @@ def get_sonarr_queue_data_series(sonarr_client):
     return requestData_sonarr_series
 
 def get_radarr_queue_data(radarr_client):
-    requestData_radarr = radarr_client.api_request(f"/queue", params={}).get("records")
+    requestData_radarr = radarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
     requestData_radarr_4k = []
     if radarr_client.has4k():
-        requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
+        requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
     for item in requestData_radarr:
         movieId = item.get("movieId")
         tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
@@ -142,13 +142,13 @@ def get_radarr_queue_data(radarr_client):
     return requestData_radarr + requestData_radarr_4k
 
 def get_url_by_status(status, id, request_id, media_type, season=1, episode_number=1):
-        tmdb_helper_type = media_type
+        tmdb_type = media_type
         if media_type == "episode":
-            tmdb_helper_type = "tv"
+            tmdb_type = "tv"
         if status in [2, 3]:
             url = build_url({"mode": "cancel_request", "request_id": request_id})
         elif status == 5:
-            url = f"plugin://plugin.video.themoviedb.helper/?info=play&tmdb_id={id}&type={tmdb_helper_type}&season={season}&episode={episode_number}"
+            url = build_url({"mode": "play_local_file", "id": id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
             url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number, "skip_dialog": True})
         return url
@@ -193,13 +193,13 @@ def show_requested_seasons(id, jellyseer_client, addon_handle, sonarr_enable = F
     xbmcplugin.endOfDirectory(addon_handle)
 
 def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
-    sonarr_series = sonarr_client.api_request(f"/series", request_4k = use_4k)
+    sonarr_series = sonarr_client.api_request(f"/series", request_4k = use_4k, use_cache=False)
     series_id = ""
     for series in sonarr_series:
         if int(series.get("tmdbId")) == int(id):
            series_id = series.get("id")
            break
-    episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = use_4k)
+    episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = use_4k, use_cache=False)
     episode_data = []
     for ep in episodes:
         if int(ep.get("seasonNumber")) != int(season_num):
@@ -210,10 +210,10 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
 def show_requested_episodes(id, season, jellyseer_client, sonarr_client, addon_handle):
     episodes = get_sonarr_episodes(id, season, sonarr_client)
     seer_episode_data = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
-    sonarr_requests = sonarr_client.api_request(f"/queue", params={}).get("records")
+    sonarr_requests = sonarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
     if sonarr_client.has4k():
         episodes += get_sonarr_episodes(id, season, sonarr_client, use_4k=True)
-        sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True).get("records")
+        sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
     for ep in episodes:
         title = ep.get("title")
         ep_number = ep.get("episodeNumber")

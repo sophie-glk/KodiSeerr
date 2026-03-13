@@ -3,6 +3,7 @@ import urllib.parse
 import xbmc
 import xbmcplugin
 import xbmcgui
+
 image_base = "https://image.tmdb.org/t/p/w500"
 
 def build_url(query):
@@ -307,4 +308,8 @@ def add_next_page_button(url_dict, page, total_pages, addon_handle):
   #art = make_art("")
   #button.setArt(art)
   xbmcplugin.addDirectoryItem(addon_handle, build_url(url_dict), button, True)
+
+# Example usage:
+# play_local_movie(240832)
+
      

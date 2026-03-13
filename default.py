@@ -2,6 +2,7 @@ import sys
 from favorites import add_to_favorites, list_favorites, remove_from_favorites
 from list_collections import list_collections, show_collection_details
 from list_recently_added import list_recently_added
+from play_local_file import play_local_file
 from request import do_request
 from show_details import show_details
 from test_connection import test_connection
@@ -154,6 +155,8 @@ elif mode == "showrequestedepisodes":
     id = args.get("id")
     season = args.get("season")
     show_requested_episodes(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
+elif mode =="play_local_file":
+    play_local_file(args.get("id", 0), args.get("type"), jellyseer_client, addon_handle, args.get("season"), args.get("episode"))
 clean_cache()
 save_cache()
         
