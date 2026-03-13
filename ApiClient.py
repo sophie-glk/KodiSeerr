@@ -39,7 +39,6 @@ class ApiClient:
         """Sends an authenticated API request to the server."""
         if method != "GET":
             use_cache = False
-            
         if not request_4k:
             token = self.api_token
             url = f"{self.endpoint_url}{endpoint}"

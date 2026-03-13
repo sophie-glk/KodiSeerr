@@ -113,7 +113,7 @@ def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, add
                                 plot_text += f" Download progress: {sizedone:.1f} GB / {size:.1f} GB."
         
         list_item = xbmcgui.ListItem(label=label_text)
-        list_item.addContextMenuItems(get_context_menu_by_status(seer_status, request_id, "movie"))
+        list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, "movie"))
         info = {'title': label_text, 'plot': plot_text}
         set_info_tag(list_item, info)
         art = make_art(mediaData)
@@ -178,6 +178,9 @@ def get_context_menu_by_status(status, id, media_type, season=1, episode_number=
         if  media_type != "movie":
             url = build_url({"mode": "request", "id": id, "type": "tv", "season": season})
             context_menu.append(('Request more', f'RunPlugin({url})'))
+        if status == 5:
+            url = build_url({"mode": "delete_file", "id": id, "type": media_type, "season": season, "episode": episode_number})
+            context_menu.append(('Delete File', f'RunPlugin({url})'))  
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
         return context_menu
 

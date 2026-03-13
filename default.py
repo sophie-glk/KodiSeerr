@@ -1,4 +1,5 @@
 import sys
+from delete_file import delete_file
 from favorites import add_to_favorites, list_favorites, remove_from_favorites
 from list_collections import list_collections, show_collection_details
 from list_recently_added import list_recently_added
@@ -157,8 +158,10 @@ elif mode == "show_requested_episodes_by_season":
     show_requested_episodes_by_season(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
 elif mode == "show_requested_episodes":
     show_requested_episodes(jellyseer_client, sonarr_client, addon, addon_handle)
-elif mode =="play_local_file":
+elif mode == "play_local_file":
     play_local_file(args.get("id", 0), args.get("type"), jellyseer_client, addon_handle, args.get("season"), args.get("episode"))
+elif mode == "delete_file":
+    delete_file(args.get("id"), args.get("type"), jellyseer_client, sonarr_client, is_4k = False, season = -1, episode = -1)
 clean_cache()
 save_cache()
         
