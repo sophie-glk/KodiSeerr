@@ -1,14 +1,7 @@
-import json
-import os
-import sys
-import urllib.parse
-import xbmc
-import xbmcplugin
-import xbmcgui
-
 image_base = "https://image.tmdb.org/t/p/w500"
-
 def build_url(query):
+    from os import sys
+    import urllib.parse
     base_url = sys.argv[0]
     return base_url + '?' + urllib.parse.urlencode(query)
 
@@ -139,6 +132,7 @@ def get_status_label(status):
 
 def get_media_status(media_type, media_id, jellyseer_client):
     """Get the request status for a media item"""
+    import xbmc
     try:
         data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
         if data and data.get('mediaInfo'):
@@ -149,6 +143,8 @@ def get_media_status(media_type, media_id, jellyseer_client):
     return 0
 
 def list_episodes(tv_id, season_number, jellyseer_client, addon_handle):
+    import xbmcplugin
+    import xbmcgui
     xbmcplugin.setContent(addon_handle, 'episodes')
     data = jellyseer_client.api_request(f"/tv/{tv_id}/season/{season_number}")
     if not data:
@@ -173,6 +169,8 @@ def list_episodes(tv_id, season_number, jellyseer_client, addon_handle):
     xbmcplugin.endOfDirectory(addon_handle)
 
 def list_genres(media_type, jellyseer_client, addon_handle):
+    import xbmcplugin
+    import xbmcgui
     xbmcplugin.setContent(addon_handle, 'genres')
     data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
     if data:
@@ -190,6 +188,9 @@ def list_genres(media_type, jellyseer_client, addon_handle):
     xbmcplugin.endOfDirectory(addon_handle)
 
 def list_items(data, mode,  addon_handle, display_type=None, genre_id=None, show_status=True, hide_pagination=True):
+    import xbmc
+    import xbmcplugin
+    import xbmcgui
     items = data.get('results', [])
     current_page = data.get('page', 1)
     total_pages = data.get('totalPages', 1)
@@ -282,6 +283,8 @@ def list_items(data, mode,  addon_handle, display_type=None, genre_id=None, show
 
 def jump_to_page(args):
     """Allow user to jump to a specific page"""
+    import xbmcgui
+    import xbmc
     keyboard = xbmcgui.Dialog().input('Enter Page Number', type=xbmcgui.INPUT_NUMERIC)
     if keyboard:
         try:
@@ -303,6 +306,8 @@ def jump_to_page(args):
             xbmcgui.Dialog().notification('KodiSeerr', 'Invalid page number', xbmcgui.NOTIFICATION_ERROR)
 
 def add_next_page_button(url_dict, page, total_pages, addon_handle):
+  import xbmcgui
+  import xbmcplugin
   if page >= total_pages:
       return
   url_dict['page'] = page + 1
@@ -312,6 +317,9 @@ def add_next_page_button(url_dict, page, total_pages, addon_handle):
   xbmcplugin.addDirectoryItem(addon_handle, build_url(url_dict), button, True)
 
 def load_file(file_path):
+    import os
+    import json
+    import xbmc
     try:
         if os.path.exists(file_path):
             with open(file_path, 'r') as f:
@@ -321,6 +329,9 @@ def load_file(file_path):
     return {}
 
 def save_file(data, file_path):
+    import os
+    import json
+    import xbmc
     try:
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, 'w') as f:
