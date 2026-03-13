@@ -10,9 +10,6 @@ from request import do_request
 from show_details import show_details
 from test_connection import test_connection
 from utils import build_url, jump_to_page
-import xbmc
-import xbmcplugin
-import xbmcgui
 import xbmcaddon
 import xbmcvfs
 import urllib.parse

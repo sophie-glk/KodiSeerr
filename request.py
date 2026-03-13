@@ -3,8 +3,6 @@ import xbmc
 import xbmcgui
 import xbmcvfs
 import xbmcplugin
-import os
-import json
 
 def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
