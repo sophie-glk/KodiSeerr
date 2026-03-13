@@ -37,6 +37,9 @@ class ApiClient:
 
     def api_request(self, endpoint, method="GET", data=None, params=None, request_4k = False, use_cache = True):
         """Sends an authenticated API request to the server."""
+        if method != "GET":
+            use_cache = False
+            
         if not request_4k:
             token = self.api_token
             url = f"{self.endpoint_url}{endpoint}"
@@ -58,7 +61,7 @@ class ApiClient:
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")
         req.add_header("X-Api-Key", token)
-        if method == "POST":
+        if method != "GET":
             req.add_header("Content-Type", "application/json")   
         try:
             with self.opener.open(req) as resp:
