@@ -279,8 +279,13 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
     xbmcplugin.endOfDirectory(addon_handle)    
 
-def cancel_request(request_id, jellyseer_client):
+#TODO Fix this feature, its broken
+def cancel_request(id, jellyseer_client, media_type = ""):
     """Cancel a pending request"""
+    request_id = id
+    if media_type == "episode":
+        #TODO
+        return
     if xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
         try:
             jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
