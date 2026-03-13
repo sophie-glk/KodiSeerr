@@ -1,2 +1,5 @@
 plugin.video.kodiseerr.zip
 ApiClient_debug.py
+__pycache__
+__pycache__/*
+__pycache__/ApiClient_debug.cpython-314.pyc

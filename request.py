@@ -1,4 +1,4 @@
-from utils import build_url, get_media_status
+from utils import build_url, get_media_status, load_file, save_file
 import xbmc
 import xbmcgui
 import xbmcvfs
@@ -8,12 +8,6 @@ import json
 
 def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
-    status = get_media_status(media_type, id, jellyseer_client)
-    if status in [2, 3, 4] or status >= 5:
-        if not xbmcgui.Dialog().yesno('KodiSeerr', 'This content is already requested. Request again?'):
-            xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
-            return
-    
     seasons_to_request = [season]
     tv_request_types = []
     confirm_string = ""
@@ -80,7 +74,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
     quality_profile = None
     if enable_ask_4k:
         preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
-        prefs = load_preferences(preferences_path)
+        prefs = load_file(preferences_path)
         if addon.getSettingBool('remember_last_quality') and 'last_4k_choice' in prefs:
             is4k = prefs['last_4k_choice']
         else:
@@ -88,12 +82,12 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
 
         if addon.getSettingBool('remember_last_quality'):
             prefs['last_4k_choice'] = is4k
-            save_preferences(prefs, preferences_path)
+            save_file(prefs, preferences_path)
     confirm_before_request = addon.getSettingBool('confirm_before_request')
     show_quality_profiles = addon.getSettingBool('show_quality_profiles')
 
     if media_type == "episode":
-        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle)
+        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, addon)
         return
 
     if show_quality_profiles:
@@ -133,7 +127,8 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
     except Exception as e:
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
 
-def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle):
+def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, addon):
+      
       series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
       if not series_data:
           xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
@@ -180,6 +175,20 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
       sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
       xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
 
+      requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
+      requests_data =  load_file(requests_path)
+      shows = requests_data.get("requests", {})
+      show = shows.get(id, {})
+      show_seasons = show.get("seasons", {})
+     
+      show_season = show_seasons.get(str(season), []) 
+      show_season.append(episode_number) 
+      show_seasons[str(season)] = show_season
+      show["seasons"] = show_seasons
+      shows[id] = show 
+      requests_data["requests"] = shows
+      save_file(requests_data, requests_path)
+
 def get_quality_profiles(jellyseer_client):
     """Get available quality profiles from server"""
     try:
@@ -191,20 +200,3 @@ def get_quality_profiles(jellyseer_client):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Quality profiles error: {e}", xbmc.LOGERROR)
     return []
-
-def load_preferences(preferences_path):
-    try:
-        if os.path.exists(preferences_path):
-            with open(preferences_path, 'r') as f:
-                return json.load(f)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Preferences load error: {e}", xbmc.LOGERROR)
-    return {}
-
-def save_preferences(prefs, preferences_path):
-    try:
-        os.makedirs(os.path.dirname(preferences_path), exist_ok=True)
-        with open(preferences_path, 'w') as f:
-            json.dump(prefs, f)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Preferences save error: {e}", xbmc.LOGERROR)

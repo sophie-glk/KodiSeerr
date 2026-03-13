@@ -1,3 +1,5 @@
+import json
+import os
 import sys
 import urllib.parse
 import xbmc
@@ -309,7 +311,21 @@ def add_next_page_button(url_dict, page, total_pages, addon_handle):
   #button.setArt(art)
   xbmcplugin.addDirectoryItem(addon_handle, build_url(url_dict), button, True)
 
-# Example usage:
-# play_local_movie(240832)
+def load_file(file_path):
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                return json.load(f)
+    except Exception as e:
+        xbmc.log(f"[KodiSeerr] Preferences load error: {e}", xbmc.LOGERROR)
+    return {}
+
+def save_file(data, file_path):
+    try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w') as f:
+            json.dump(data, f)
+    except Exception as e:
+        xbmc.log(f"[KodiSeerr] File save error: {e}", xbmc.LOGERROR)
 
      

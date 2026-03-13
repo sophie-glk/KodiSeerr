@@ -18,7 +18,7 @@ from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
 from sonarr_api import SonarrClient
 from cache import *
-from monitor_requests import show_requested_episodes
+from monitor_requests import show_requested_episodes, show_requested_episodes_by_season
 from monitor_requests import show_requests
 from monitor_requests import show_requested_seasons
 from monitor_requests import cancel_request
@@ -147,14 +147,16 @@ elif mode == "request":
     skip_dialog = args.get("skip_dialog", False)
     do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client, season, episode, skip_dialog)
 elif mode == "requests":
-    show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle)
+    show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, addon)
 elif mode == "showrequestedseasons":
     id = args.get("id")
     show_requested_seasons(id, jellyseer_client, addon_handle, enable_sonarr)
-elif mode == "showrequestedepisodes":
+elif mode == "show_requested_episodes_by_season":
     id = args.get("id")
     season = args.get("season")
-    show_requested_episodes(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
+    show_requested_episodes_by_season(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
+elif mode == "show_requested_episodes":
+    show_requested_episodes(jellyseer_client, sonarr_client, addon, addon_handle)
 elif mode =="play_local_file":
     play_local_file(args.get("id", 0), args.get("type"), jellyseer_client, addon_handle, args.get("season"), args.get("episode"))
 clean_cache()

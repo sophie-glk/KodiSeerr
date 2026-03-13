@@ -2,16 +2,25 @@ import utils
 import xbmcplugin
 import xbmcgui
 import xbmc
-from utils import add_next_page_button, build_url
+import xbmcvfs
+from utils import add_next_page_button, build_url, load_file
 from utils import set_info_tag
 from utils import make_art
-def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, pagesize = 25):
+def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, addon, pagesize = 25):
     """Display user's requests with pagination"""
     xbmcplugin.setContent(addon_handle, 'videos')
+    requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
+    requests_data =  load_file(requests_path)
+    if requests_data.get("requests", {}):
+        list_item = xbmcgui.ListItem(label="Single Episodes")
+        icon = "DefaultSets.png"
+        list_item.setArt({'icon': icon, 'thumb': icon})
+        url = build_url({"mode": "show_requested_episodes"})
+        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
+    
     skip = (page - 1) * pagesize
     data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": skip, "sort": "added", "filter": "all"}, use_cache = False)
     items = data.get('results', []) if data else []
-
     requestData_radarr = []
     requestData_sonarr_series = []
     #TODO better pages
@@ -30,12 +39,24 @@ def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, ad
         elif(media_type == "tv"):
           show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle)
     
+
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
     page_info = data.get('pageInfo', {})
     total_pages = page_info.get('pages', 1)
     add_next_page_button({"mode": "requests"}, page, total_pages, addon_handle)
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
+
+def show_requested_episodes(jellyseer_client, sonarr_client, addon, addon_handle):
+    xbmcplugin.setContent(addon_handle, 'videos')
+    requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
+    requests_data =  load_file(requests_path)
+    episode_requests = requests_data.get("requests", {})
+    for id, data in episode_requests.items():
+        for season, episode_list in data.get("seasons").items():
+           show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_client, addon_handle, episode_list)
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)  
+
 
 def show_series_request(id, mediaData, seer_status, item, requestData_sonarr_series, addon_handle):
         arr_status = ""
@@ -54,13 +75,9 @@ def show_series_request(id, mediaData, seer_status, item, requestData_sonarr_ser
         if seer_status == 3:
             if arr_status == "downloading":
                             plot_text += f" Time left: {timeleft} h,"
-        context_menu = []
-        if seer_status in [2, 3]:
-            context_menu.append(('Cancel Request', f'RunPlugin({build_url({"mode": "cancel_request", "request_id": request_id})})'))
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": "tv", "id": id})})'))
         url =  build_url({'mode': "showrequestedseasons", "id": id }) 
         list_item = xbmcgui.ListItem(label=label_text)
-        list_item.addContextMenuItems(context_menu)
+        list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, "tv"))
         info = {'title': label_text, 'plot': plot_text}
         set_info_tag(list_item, info)
         art = make_art(mediaData)
@@ -155,9 +172,12 @@ def get_url_by_status(status, id, request_id, media_type, season=1, episode_numb
 
 def get_context_menu_by_status(status, id, media_type, season=1, episode_number=1):
         context_menu = []
-        if status in [2, 3]:
+        if status in [2, 3] and media_type != "episode":
             url = build_url({"mode": "cancel_request", "request_id": id})
             context_menu.append(('Cancel Request', f'RunPlugin({url})'))
+        if  media_type != "movie":
+            url = build_url({"mode": "request", "id": id, "type": "tv", "season": season})
+            context_menu.append(('Request more', f'RunPlugin({url})'))
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
         return context_menu
 
@@ -187,7 +207,7 @@ def show_requested_seasons(id, jellyseer_client, addon_handle, sonarr_enable = F
             'mediatype': 'season',
             'season': season_number
             })
-            url = build_url({"mode": "showrequestedepisodes", "type": "tv", "id": id, "season": season_number})
+            url = build_url({"mode": "show_requested_episodes_by_season", "type": "tv", "id": id, "season": season_number})
         list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, "tv"))
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
     xbmcplugin.endOfDirectory(addon_handle)
@@ -207,9 +227,10 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
         episode_data.append(ep)  
     return episode_data
 
-def show_requested_episodes(id, season, jellyseer_client, sonarr_client, addon_handle):
+def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_client, addon_handle, filter = []):
     episodes = get_sonarr_episodes(id, season, sonarr_client)
     seer_episode_data = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
+    show_name = jellyseer_client.api_request(f"/tv/{id}", method="GET").get("name", "")
     sonarr_requests = sonarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
     if sonarr_client.has4k():
         episodes += get_sonarr_episodes(id, season, sonarr_client, use_4k=True)
@@ -217,6 +238,8 @@ def show_requested_episodes(id, season, jellyseer_client, sonarr_client, addon_h
     for ep in episodes:
         title = ep.get("title")
         ep_number = ep.get("episodeNumber")
+        if filter and ep_number not in filter:
+            continue
         hasFile = ep.get("hasFile")
         plot_text = ""
         status = 6
@@ -241,8 +264,9 @@ def show_requested_episodes(id, season, jellyseer_client, sonarr_client, addon_h
             if not found:
                 plot_text = "[COLOR red] (Missing) [/COLOR]"
         url = get_url_by_status(status, id, 0, "episode", season, ep_number)
-        list_item = xbmcgui.ListItem()
-        list_item.setInfo("video",  {'title': title, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})
+        list_item = xbmcgui.ListItem(label = title)
+        list_item.addContextMenuItems(get_context_menu_by_status(status, id, "episode", season))
+        list_item.setInfo("video",  {'title': title, 'tvshowtitle': show_name, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})
         ##get Art
         for item in seer_episode_data:
             if ep_number == item.get("episodeNumber"):
