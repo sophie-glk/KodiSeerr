@@ -118,6 +118,9 @@ elif mode == "play_local_file":
 elif mode == "delete_file":
     from delete_file import delete_file
     delete_file(args.get("id"), args.get("type"), jellyseer_client, sonarr_client, is_4k = False, season = -1, episode = -1)
+elif mode == "refresh":
+    import xbmc
+    xbmc.executebuiltin('Container.Refresh')
 clean_cache()
 save_cache()
         

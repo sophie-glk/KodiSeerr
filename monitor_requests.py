@@ -182,6 +182,7 @@ def get_context_menu_by_status(status, id, media_type, season=1, episode_number=
             url = build_url({"mode": "delete_file", "id": id, "type": media_type, "season": season, "episode": episode_number})
             context_menu.append(('Delete File', f'RunPlugin({url})'))  
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
+        context_menu.append(('Refresh', f'RunPlugin({build_url({"mode": "refresh"})})'))
         return context_menu
 
 def is_directory(status):

@@ -89,12 +89,13 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
         return
 
     if show_quality_profiles:
-        profiles = get_quality_profiles(jellyseer_client)
+        xbmcgui.Dialog().notification('KodiSeerr', 'Confirm', xbmcgui.NOTIFICATION_INFO, 3000)
+        profiles = get_quality_profiles(jellyseer_client, media_type, is4k)
         if profiles:
-            profile_names = [p[1] for p in profiles]
+            profile_names = [p.get("name") for p in profiles]
             selected = xbmcgui.Dialog().select('Select Quality Profile', profile_names)
             if selected >= 0:
-                quality_profile = profiles[selected][0]
+                quality_profile = profiles[selected].get("id")
 
     if confirm_before_request:
         title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
@@ -187,14 +188,27 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
       requests_data["requests"] = shows
       save_file(requests_data, requests_path)
 
-def get_quality_profiles(jellyseer_client):
+def get_quality_profiles(jellyseer_client, media_type, is4k = False):
+    import json
     """Get available quality profiles from server"""
-    try:
-        # This depends on Jellyseerr API - might need adjustment
-        data = jellyseer_client.api_request('/settings/radarr')
-        if data and isinstance(data, list) and len(data) > 0:
-            profiles = data[0].get('profiles', [])
-            return [(p['id'], p['name']) for p in profiles]
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Quality profiles error: {e}", xbmc.LOGERROR)
-    return []
+    backend_name = "sonarr"
+    if media_type == "movie":
+        backend_name = "radarr"
+
+    servers = jellyseer_client.api_request(f"/service/{backend_name}")
+    default_server_id = None
+    if not servers:
+        return []
+    for server in servers:
+        if str(server.get("isDefault")) == "True":
+            if is4k and not server.get("is4k", False):
+                continue
+            default_server_id = server.get("id", None)
+            break
+    if not default_server_id:
+        return []
+    profiles = jellyseer_client.api_request(f"/service/{backend_name}/{default_server_id}").get("profiles", [])
+    return profiles
+                                            
+    
+        
