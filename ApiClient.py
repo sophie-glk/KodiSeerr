@@ -64,7 +64,10 @@ class ApiClient:
             req.add_header("Content-Type", "application/json")   
         try:
             with self.opener.open(req) as resp:
-                response = json.loads(resp.read().decode())
+                raw_data = resp.read()
+                if not raw_data:
+                    return {} 
+                response = json.loads(raw_data)
                 if use_cache:
                  set_cached(cache_key, response)
                 return response
