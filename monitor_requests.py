@@ -116,7 +116,7 @@ def show_movie_request(id, mediaData, seer_status, item, requestData_radarr, add
         set_info_tag(list_item, info)
         art = make_art(mediaData)
         list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, get_url_by_status(seer_status, id, request_id, "movie"), list_item, is_directory(seer_status))
+        xbmcplugin.addDirectoryItem(addon_handle, get_url_by_status(seer_status, id, "movie"), list_item, is_directory(seer_status))
 
 def get_sonarr_queue_data_series(sonarr_client):
     requestData_sonarr = sonarr_client.api_request(f"/queue", params={}, request_4k=False, use_cache = False).get("records")
@@ -156,12 +156,12 @@ def get_radarr_queue_data(radarr_client):
         item.update({"tmdbId" : tmdbId})
     return requestData_radarr + requestData_radarr_4k
 
-def get_url_by_status(status, id, request_id, media_type, season=1, episode_number=1):
+def get_url_by_status(status, id, media_type, season=1, episode_number=1):
         tmdb_type = media_type
         if media_type == "episode":
             tmdb_type = "tv"
         if status in [2, 3]:
-            url = build_url({"mode": "cancel_request", "request_id": request_id})
+            url = build_url({"mode": "cancel_request", "id": id})
         elif status == 5:
             url = build_url({"mode": "play_local_file", "id": id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
@@ -171,7 +171,7 @@ def get_url_by_status(status, id, request_id, media_type, season=1, episode_numb
 def get_context_menu_by_status(status, id, media_type, season=1, episode_nr=1, episode_id=-1):
         context_menu = []
         if status in [2, 3] and media_type != "episode":
-            url = build_url({"mode": "cancel_request", "request_id": id})
+            url = build_url({"mode": "cancel_request", "id": id})
             context_menu.append(('Cancel Request', f'RunPlugin({url})'))
         if  media_type != "movie":
             url = build_url({"mode": "request", "id": id, "type": "tv", "season": season})
@@ -266,7 +266,7 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
                     break
             if not found:
                 plot_text = "[COLOR red] (Missing) [/COLOR]"
-        url = get_url_by_status(status, id, 0, "episode", season, ep_number)
+        url = get_url_by_status(status, id, "episode", season, ep_number)
         list_item = xbmcgui.ListItem(label = title)
         list_item.addContextMenuItems(get_context_menu_by_status(status, id, "episode", season, ep_number, episode_id))
         list_item.setInfo("video",  {'title': title, 'tvshowtitle': show_name, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})
@@ -280,16 +280,20 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
     xbmcplugin.endOfDirectory(addon_handle)    
 
 #TODO Fix this feature, its broken
-def cancel_request(id, jellyseer_client, media_type = ""):
+def cancel_request(tmdb_id, jellyseer_client, media_type):
     """Cancel a pending request"""
-    request_id = id
-    if media_type == "episode":
-        #TODO
+    if not xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
         return
-    if xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
-        try:
-            jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
-            xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
-            xbmc.executebuiltin('Container.Refresh')
-        except Exception as e:
-            xbmcgui.Dialog().notification('KodiSeerr', f'Failed to cancel: {str(e)}', xbmcgui.NOTIFICATION_ERROR)
+    requests = jellyseer_client.api_request("/request").get("results", [])
+    request_id = -1
+    for request in requests:
+        media = request.get("media", {})
+        if str(tmdb_id) == str(media.get("tmdbId")):
+            request_id = request.get("id")
+            break
+    if request_id != -1:    
+        jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
+        xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        xbmcgui.Dialog().notification('KodiSeerr', f'Could not find a matching request', xbmcgui.NOTIFICATION_ERROR)

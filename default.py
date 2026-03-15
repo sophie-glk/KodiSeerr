@@ -62,7 +62,7 @@ elif mode == "report_issue":
     report_issue(args.get('type'), args.get('id'))
 elif mode == "cancel_request":
     from monitor_requests import cancel_request
-    cancel_request(args.get('request_id'), jellyseer_client)
+    cancel_request(args.get('id'), jellyseer_client, args.get("type"))
 elif mode == "jump_to_page":
     from utils import jump_to_page
     jump_to_page(args)
