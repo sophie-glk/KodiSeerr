@@ -284,7 +284,7 @@ def cancel_request(tmdb_id, jellyseer_client, media_type):
     """Cancel a pending request"""
     if not xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
         return
-    requests = jellyseer_client.api_request("/request").get("results", [])
+    requests = jellyseer_client.api_request("/request", use_cache=False).get("results", [])
     request_id = -1
     for request in requests:
         media = request.get("media", {})
