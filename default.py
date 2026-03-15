@@ -96,7 +96,7 @@ elif mode == "request":
     season = int(args.get("season", -1))
     episode = int(args.get("episode", -1))
     skip_dialog = args.get("skip_dialog", False)
-    do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False)
+    do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client, season, episode, skip_dialog)
 elif mode == "requests":
     from monitor_requests import show_requests
     show_requests( page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings)
@@ -117,7 +117,7 @@ elif mode == "play_local_file":
     play_local_file(args.get("id", 0), args.get("type"), jellyseer_client, addon_handle, args.get("season"), args.get("episode"))
 elif mode == "delete_file":
     from delete_file import delete_file
-    delete_file(args.get("id"), args.get("type"), jellyseer_client, sonarr_client, is_4k = False, season = -1, episode = -1)
+    delete_file(args.get("id"), args.get("type"), jellyseer_client, sonarr_client, settings, season = args.get("season"), episode_nr=args.get("episode"), episode_id = args.get("episode_id"))
 elif mode == "refresh":
     import xbmc
     xbmc.executebuiltin('Container.Refresh')

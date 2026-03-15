@@ -60,7 +60,7 @@ class ApiClient:
         req = urllib.request.Request(url, data=data, method=method)
         req.add_header("Accept", "application/json")
         req.add_header("X-Api-Key", token)
-        if method != "GET":
+        if method == "POST" or method == "PUT":
             req.add_header("Content-Type", "application/json")   
         try:
             with self.opener.open(req) as resp:
