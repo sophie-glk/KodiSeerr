@@ -6,10 +6,10 @@ import xbmcvfs
 from utils import add_next_page_button, build_url, load_file
 from utils import set_info_tag
 from utils import make_art
-def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, addon, pagesize = 25):
+def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings, pagesize = 25):
     """Display user's requests with pagination"""
     xbmcplugin.setContent(addon_handle, 'videos')
-    requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
+    requests_path = settings.get_preferences("episode_requests")
     requests_data =  load_file(requests_path)
     if requests_data.get("requests", {}):
         list_item = xbmcgui.ListItem(label="Single Episodes")
@@ -47,10 +47,9 @@ def show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, ad
     add_next_page_button({"mode": "requests"}, page, total_pages, addon_handle)
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
 
-def show_requested_episodes(jellyseer_client, sonarr_client, addon, addon_handle):
+def show_requested_episodes(jellyseer_client, sonarr_client, settings, addon_handle):
     xbmcplugin.setContent(addon_handle, 'videos')
-    requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
-    requests_data =  load_file(requests_path)
+    requests_data = settings.get_preferences("episode_requests")
     episode_requests = requests_data.get("requests", {})
     for id, data in episode_requests.items():
         for season, episode_list in data.get("seasons").items():

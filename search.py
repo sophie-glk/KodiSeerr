@@ -6,7 +6,7 @@ from utils import make_info
 from utils import get_media_status
 from utils import build_url
 from utils import set_info_tag
-def search(search_string, jellyseer_client, show_status, addon_handle, page = 1, external_keyboard = False):
+def search(search_string, jellyseer_client, settings, addon_handle, page = 1, external_keyboard = False):
     #make sure we get new search item by avoiding caching
     if not search_string and not external_keyboard:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
@@ -23,7 +23,7 @@ def search(search_string, jellyseer_client, show_status, addon_handle, page = 1,
             type_label = "(Movie)" if media_type == "movie" else "(TV Show)"
             full_title = f"{title} ({year}) {type_label}" if year else f"{title} {type_label}"
             
-            if show_status:
+            if settings.show_request_status():
                 status = get_media_status(media_type, item.get('id'), jellyseer_client)
                 status_label = get_status_label(status)
                 if status_label:

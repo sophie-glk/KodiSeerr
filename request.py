@@ -1,10 +1,9 @@
 from utils import build_url, get_media_status, load_file, save_file
 import xbmc
 import xbmcgui
-import xbmcvfs
 import xbmcplugin
 
-def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
+def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
     seasons_to_request = [season]
     tv_request_types = []
@@ -70,22 +69,20 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
                        
     is4k = False
     quality_profile = None
+    enable_ask_4k = settings.enable_ask_4k()
     if enable_ask_4k:
-        preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
-        prefs = load_file(preferences_path)
-        if addon.getSettingBool('remember_last_quality') and 'last_4k_choice' in prefs:
+        prefs = settings.get_preferences("last_quality")
+        if settings.remember_last_quality() and 'last_4k_choice' in prefs:
             is4k = prefs['last_4k_choice']
         else:
             is4k = xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?')
-
-        if addon.getSettingBool('remember_last_quality'):
-            prefs['last_4k_choice'] = is4k
-            save_file(prefs, preferences_path)
-    confirm_before_request = addon.getSettingBool('confirm_before_request')
-    show_quality_profiles = addon.getSettingBool('show_quality_profiles')
+        if settings.remember_last_quality:
+            settings.save_preferences("last_quality", prefs)
+    confirm_before_request = settings.confirm_before_request()
+    show_quality_profiles = settings.show_quality_profiles()
 
     if media_type == "episode":
-        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, addon)
+        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, settings)
         return
 
     if show_quality_profiles:
@@ -126,7 +123,7 @@ def do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_han
     except Exception as e:
         xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
 
-def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, addon):
+def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, settings):
       
       series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
       if not series_data:
@@ -174,29 +171,26 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
       sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
       xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
 
-      requests_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/episode_requests.json")
-      requests_data =  load_file(requests_path)
+      requests_data = settings.get_preferences("episode_requests")
       shows = requests_data.get("requests", {})
       show = shows.get(id, {})
       show_seasons = show.get("seasons", {})
-     
       show_season = show_seasons.get(str(season), []) 
       show_season.append(episode_number) 
       show_seasons[str(season)] = show_season
       show["seasons"] = show_seasons
       shows[id] = show 
       requests_data["requests"] = shows
-      save_file(requests_data, requests_path)
+      settings.save_preferences("episode_requests", requests_data)
 
 def get_quality_profiles(jellyseer_client, media_type, is4k = False):
-    import json
     """Get available quality profiles from server"""
     backend_name = "sonarr"
     if media_type == "movie":
         backend_name = "radarr"
 
     servers = jellyseer_client.api_request(f"/service/{backend_name}")
-    default_server_id = None
+    default_server_id = -1
     if not servers:
         return []
     for server in servers:
@@ -205,7 +199,7 @@ def get_quality_profiles(jellyseer_client, media_type, is4k = False):
                 continue
             default_server_id = server.get("id", None)
             break
-    if not default_server_id:
+    if default_server_id == -1:
         return []
     profiles = jellyseer_client.api_request(f"/service/{backend_name}/{default_server_id}").get("profiles", [])
     return profiles

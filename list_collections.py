@@ -37,7 +37,7 @@ def list_collections(page, jellyseer_client, image_base, addon_handle):
     
     xbmcplugin.endOfDirectory(addon_handle)
 
-def show_collection_details(collection_id, show_request_status, jellyseer_client, addon_handle):
+def show_collection_details(collection_id, settings, jellyseer_client, addon_handle):
     """Show movies in a collection"""
     xbmcplugin.setContent(addon_handle, 'movies')
     data = jellyseer_client.api_request(f"/collection/{collection_id}")
@@ -52,7 +52,7 @@ def show_collection_details(collection_id, show_request_status, jellyseer_client
             
             label = f"{title} ({year})" if year else title
             
-            if show_request_status:
+            if settings.show_request_status():
                 status = get_media_status(media_type, item.get('id'), jellyseer_client)
                 status_label = get_status_label(status)
                 if status_label:

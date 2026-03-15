@@ -1,5 +1,6 @@
 import sys
 from cache import load_cache, save_cache, clean_cache
+from Settings import Settings
 import xbmcvfs
 import xbmcaddon
 import urllib
@@ -11,18 +12,19 @@ load_cache()
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
 favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
-preferences_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/preferences.json")
+addon_data_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}")
+settings = Settings(addon_data_path , addon)
 addon_handle = int(sys.argv[1])
 addon_path = addon.getAddonInfo('path')
 
 base_url = sys.argv[0]
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
+
 radarr_client = None
 sonarr_client = None
-enable_ask_4k = addon.getSettingBool('enable_ask_4k')
-enable_radarr = addon.getSettingBool('radarr_enable')
-enable_sonarr = addon.getSettingBool('sonarr_enable')
+enable_radarr = settings.enable_radarr()
+enable_sonarr = settings.enable_sonarr()
 if enable_radarr:
  radarr_client = create_client(RadarrClient)
 if enable_sonarr:
@@ -69,17 +71,15 @@ elif mode == "collections":
     list_collections(page, jellyseer_client, image_base, addon_handle)
 elif mode == "collection_details":
     from list_collections import show_collection_details
-    show_request_status = addon.getSettingBool('show_request_status')
-    show_collection_details(args.get('collection_id'), show_request_status, jellyseer_client, addon_handle)
+    show_collection_details(args.get('collection_id'), settings, jellyseer_client, addon_handle)
 elif mode == "recently_added":
     from list_recently_added import list_recently_added
     list_recently_added(page, jellyseer_client, addon_handle)
 elif mode == "search":
     from search import search
     search_string = args.get("query")
-    show_status = addon.getSettingBool('show_request_status')
     external_keyboard = args.get("ext_keyboard", False)
-    search(search_string, jellyseer_client, show_status, addon_handle, page=page, external_keyboard=bool(external_keyboard))
+    search(search_string, jellyseer_client, settings, addon_handle, page=page, external_keyboard=bool(external_keyboard))
 elif mode == "handle_search_item":
     from search import handle_search_item
     handle_search_item( args.get("type"), args.get("id"), jellyseer_client)
@@ -96,10 +96,10 @@ elif mode == "request":
     season = int(args.get("season", -1))
     episode = int(args.get("episode", -1))
     skip_dialog = args.get("skip_dialog", False)
-    do_request(media_type, id, enable_ask_4k, jellyseer_client, addon, addon_handle, sonarr_client, season, episode, skip_dialog)
+    do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False)
 elif mode == "requests":
     from monitor_requests import show_requests
-    show_requests(mode, page, jellyseer_client, radarr_client, sonarr_client, addon_handle, addon)
+    show_requests( page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings)
 elif mode == "showrequestedseasons":
     from monitor_requests import show_requested_seasons
     id = args.get("id")
@@ -111,7 +111,7 @@ elif mode == "show_requested_episodes_by_season":
     show_requested_episodes_by_season(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
 elif mode == "show_requested_episodes":
     from monitor_requests import show_requested_episodes
-    show_requested_episodes(jellyseer_client, sonarr_client, addon, addon_handle)
+    show_requested_episodes(jellyseer_client, sonarr_client, settings, addon_handle)
 elif mode == "play_local_file":
     from play_local_file import play_local_file
     play_local_file(args.get("id", 0), args.get("type"), jellyseer_client, addon_handle, args.get("season"), args.get("episode"))
