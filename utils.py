@@ -14,7 +14,7 @@ def set_info_tag(list_item, info):
             info_tag.setYear(int(info['year']))
         except Exception:
             pass
-    if info.get('genre'): info_tag.setGenre(info['genre'])
+    if info.get('genre'): info_tag.setGenres(info['genre'])
     if info.get('rating'):
         try:
             info_tag.setRating(float(info['rating']))
@@ -35,7 +35,6 @@ def set_info_tag(list_item, info):
     if info.get('cast'): info_tag.setCast(info['cast'])
     if info.get('director'): info_tag.setDirector(info['director'])
     if info.get('studio'): info_tag.setStudio(info['studio'])
-    if info.get('country'): info_tag.setCountry(info['country'])
     if info.get('mediatype'): info_tag.setMediaType(info['mediatype'])
 
 def make_art(item):

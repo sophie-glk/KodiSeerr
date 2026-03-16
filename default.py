@@ -1,6 +1,7 @@
 import sys
 from cache import load_cache, save_cache, clean_cache
 from Settings import Settings
+from TraktClient import TraktClient
 import xbmcvfs
 import xbmcaddon
 import urllib
@@ -8,6 +9,7 @@ from create_client import create_client
 from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
 from sonarr_api import SonarrClient
+import json
 load_cache()
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
@@ -30,6 +32,9 @@ if enable_radarr:
 if enable_sonarr:
  sonarr_client = create_client(SonarrClient)
 
+trakt_client = TraktClient("033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9",
+                            "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0", addon_data_path)
+#xbmc.log(f"[kodiseerr trakt] {json.dumps(resp)}", xbmc.LOGERROR)
 mode = args.get('mode')
 page = int(args.get('page', 1))
 
@@ -80,15 +85,15 @@ elif mode == "search":
     search_string = args.get("query")
     external_keyboard = args.get("ext_keyboard", False)
     search(search_string, jellyseer_client, settings, addon_handle, page=page, external_keyboard=bool(external_keyboard))
-elif mode == "handle_search_item":
-    from search import handle_search_item
-    handle_search_item( args.get("type"), args.get("id"), jellyseer_client)
-elif mode == "handle_search_season":
-    from search import handle_search_season
-    handle_search_season(args.get("id"), jellyseer_client, addon_handle)
-elif mode == "handle_search_episode":
-    from search import handle_search_episodes
-    handle_search_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)  
+elif mode == "browse_menu":
+    from browse import browse_menu
+    browse_menu(args.get("type"), args.get("id"), jellyseer_client, args.get("season", -1), args.get("episode", -1))
+elif mode == "browse_handle_season":
+    from browse import browse_handle_season
+    browse_handle_season(args.get("id"), jellyseer_client, addon_handle)
+elif mode == "browse_handle_episodes":
+    from browse import browse_handle_episodes
+    browse_handle_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)  
 elif mode == "request":
     from request import do_request
     media_type = args.get("type")
@@ -121,6 +126,9 @@ elif mode == "delete_file":
 elif mode == "refresh":
     import xbmc
     xbmc.executebuiltin('Container.Refresh')
+elif mode == "trakt":
+    from trakt import trakt
+    trakt(args.get("trakt_mode" ,""), addon_handle, addon_data_path)
 clean_cache()
 save_cache()
         

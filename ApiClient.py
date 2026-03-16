@@ -52,6 +52,7 @@ class ApiClient:
         if data is not None:
             data_json = json.dumps(data, separators=(',', ':'))
             data = data_json.encode('utf-8')
+        cache_key = None
         if use_cache:
          cache_key = hashlib.sha256(str(url + endpoint + method + data_json + token).encode("utf-8")).hexdigest()
          cached = get_cached(cache_key)

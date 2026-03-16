@@ -14,6 +14,7 @@ def main_menu(addon_handle):
         (None, None, None, False),
         ('search', 'Search', 'DefaultAddonsSearch.png', True),
         ('test_connection', 'Test Connection', 'DefaultAddonService.png', False),
+        ('trakt', 'Trakt', 'DefaultAddonService.png', True),
     ]
     
     for item in items:
