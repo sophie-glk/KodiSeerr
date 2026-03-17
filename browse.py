@@ -1,8 +1,8 @@
-from utils import build_url
+from utils import build_url, handle_empty_directory
 import xbmc
 import xbmcplugin
 import xbmcgui
-def browse_menu(media_type, id, jellyseer_client, season = -1, episode = -1):
+def browse_menu(media_type, id, jellyseer_client, addon_handle, season = -1, episode = -1):
     if media_type != "tv":
         xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id, "season": season, "episode": episode})})')
         return
@@ -11,9 +11,10 @@ def browse_menu(media_type, id, jellyseer_client, season = -1, episode = -1):
     if selected == -1:
         return
     elif selected == 0:
+        handle_empty_directory(addon_handle)
         xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id})})')
         return
-    xbmc.executebuiltin(f'Container.Update({build_url({"mode": "browse_handle_season", "type": media_type, "id": id})})')
+    browse_handle_season(id, jellyseer_client, addon_handle)
 
 def browse_handle_season(id, jellyseer_client, addon_handle):
     seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons")
@@ -22,7 +23,7 @@ def browse_handle_season(id, jellyseer_client, addon_handle):
         list_item = xbmcgui.ListItem(label = season.get("name"))
         list_item.setInfo("video",  {'title': season.get("name"), "season": season.get("seasonNumber"), 'mediatype': 'season'})
         xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "browse_handle_episodes", "id": id, "season": season.get("seasonNumber")}) , list_item, True)
-    xbmcplugin.endOfDirectory(addon_handle)  
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)  
 
 def browse_handle_episodes(id, season, jellyseer_client, addon_handle):
     episodes = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])

@@ -1,7 +1,6 @@
 import xbmcplugin
 import xbmcgui
-import xbmc
-from utils import add_next_page_button, get_status_label, make_art
+from utils import add_next_page_button, get_status_label, handle_empty_directory, make_art
 from utils import make_info
 from utils import get_media_status
 from utils import build_url
@@ -47,7 +46,5 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
         add_next_page_button({"mode": "search", "query": search_string}, page, total_pages, addon_handle)
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
     else:
-        xbmcplugin.setContent(addon_handle, 'files')
-        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
-        xbmc.executebuiltin('Action(Back)')
+        handle_empty_directory(addon_handle)
  

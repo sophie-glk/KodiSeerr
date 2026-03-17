@@ -1,10 +1,10 @@
-from utils import build_url, get_media_status, load_file, save_file
 import xbmc
 import xbmcgui
 import xbmcplugin
 
 def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client = None, season = -1, episode_number = -1, skip_dialog = False):
     """Handle media request with advanced options"""
+    is_available = jellyseer_client
     seasons_to_request = [season]
     tv_request_types = []
     confirm_string = ""
@@ -42,6 +42,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
          season_nr = int(season_list[selected_nr])
          seasons_to_request = [season_nr]
          confirm_string = f"Season {season_nr}"         
+
      elif selected_tv_request_type == "Choose an episode to request":
          seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
          season_list = []

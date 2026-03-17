@@ -157,15 +157,18 @@ def get_radarr_queue_data(radarr_client):
     return requestData_radarr + requestData_radarr_4k
 
 def get_url_by_status(status, id, media_type, season=1, episode_number=1):
+        is_directory = False
         tmdb_type = media_type
         if media_type == "episode":
             tmdb_type = "tv"
+        if media_type != "movie":
+            is_directory = True
         if status in [2, 3]:
-            url = build_url({"mode": "cancel_request", "id": id})
+            url = build_url({"mode": "cancel_request", "id": id, "handle_empty_directory": is_directory})
         elif status == 5:
             url = build_url({"mode": "play_local_file", "id": id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
-            url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number, "skip_dialog": True})
+            url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
         return url
 
 def get_context_menu_by_status(status, id, media_type, season=1, episode_nr=1, episode_id=-1):
@@ -275,6 +278,7 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
             if ep_number == item.get("episodeNumber"):
                 list_item.setArt({'icon': item.get("stillPath")})
                 break
+        
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, is_directory(status))
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
     xbmcplugin.endOfDirectory(addon_handle)    

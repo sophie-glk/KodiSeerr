@@ -38,6 +38,10 @@ trakt_client = TraktClient("033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44
 mode = args.get('mode')
 page = int(args.get('page', 1))
 
+if args.get("handle_empty_directory") == "True":
+    from utils import handle_empty_directory
+    handle_empty_directory(addon_handle)
+
 if not mode:
     from main_menu import main_menu
     main_menu(addon_handle)
@@ -87,7 +91,7 @@ elif mode == "search":
     search(search_string, jellyseer_client, settings, addon_handle, page=page, external_keyboard=bool(external_keyboard))
 elif mode == "browse_menu":
     from browse import browse_menu
-    browse_menu(args.get("type"), args.get("id"), jellyseer_client, args.get("season", -1), args.get("episode", -1))
+    browse_menu(args.get("type"), args.get("id"), jellyseer_client, addon_handle, args.get("season", -1), args.get("episode", -1))
 elif mode == "browse_handle_season":
     from browse import browse_handle_season
     browse_handle_season(args.get("id"), jellyseer_client, addon_handle)
