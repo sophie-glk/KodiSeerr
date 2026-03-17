@@ -5,7 +5,6 @@ import xbmcaddon
 import xbmc
 import json
 from urllib.parse import urlencode, quote
-import hashlib
 from cache import *
 
 class ApiClient:
@@ -54,7 +53,7 @@ class ApiClient:
             data = data_json.encode('utf-8')
         cache_key = None
         if use_cache:
-         cache_key = hashlib.sha256(str(url + endpoint + method + data_json + token).encode("utf-8")).hexdigest()
+         cache_key = str(url + endpoint + method + data_json + token)
          cached = get_cached(cache_key)
          if cached is not None:
             return cached

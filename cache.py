@@ -1,3 +1,5 @@
+import hashlib
+
 import xbmcaddon
 import xbmcvfs
 import xbmc
@@ -11,6 +13,12 @@ addon = xbmcaddon.Addon()
 cache = {}
 cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/cache.json")
 cache_id = "c83c803f-b874-4f17-8b1b-079b9694943e"
+disable_caching = False
+cache_duration = 60
+
+def disable_caching():
+   global disable_caching
+   disable_caching = False
 
 def load_cache():
     global cache
@@ -22,57 +30,39 @@ def load_cache():
      except:
         return
      
-def load_cache_disk():
-    global cache
-    if addon.getSettingBool('enable_caching'):
-        try:
-            if os.path.exists(cache_path):
-                with open(cache_path, 'r') as f:
-                    cache = json.load(f)
-        except Exception as e:
-            xbmc.log(f"[KodiSeerr] Cache load error: {e}", xbmc.LOGERROR)
-            cache = {}
-
+def set_cache_duration(duration: int):
+   global cache_duration
+   cache_duration = duration
+     
 def save_cache():
-    if addon.getSettingBool('enable_caching'):
-        window = xbmcgui.Window(10000) # Home
-        window.setProperty(cache_id,  json.dumps(cache, separators=(',', ':')))
+    global disable_caching
+    if disable_caching:
+        return
+    window = xbmcgui.Window(10000) # Home
+    window.setProperty(cache_id,  json.dumps(cache, separators=(',', ':')))
 
-def save_cache_disk():
-    if addon.getSettingBool('enable_caching'):
-        try:
-            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
-            with open(cache_path, 'w') as f:
-                json.dump(cache, f)
-        except Exception as e:
-            xbmc.log(f"[KodiSeerr] Cache save error: {e}", xbmc.LOGERROR)
-
-def get_cached(key):
-    if not addon.getSettingBool('enable_caching'):
+def get_cached(key: str):
+    global disable_caching
+    if disable_caching:
         return None
+    
+    hashed_key = hashlib.sha256(str(key).encode("utf-8")).hexdigest()
     if key in cache:
-        entry = cache[key]
+        entry = cache[hashed_key]
         if time.time() - entry.get('timestamp', 0) < entry.get("duration", 60):
             return entry.get('data')
     return None
 
 def set_cached(key, data,  duration=None):
+    global disable_caching
+    global cache_duration
+    if disable_caching:
+       return
     if not duration:
-        duration = addon.getSettingInt('cache_duration') * 60
-    if addon.getSettingBool('enable_caching'):
-        cache[key] = {'data': data, 'timestamp': time.time(), "duration": duration}
+        duration = cache_duration
+    hashed_key = hashlib.sha256(str(key).encode("utf-8")).hexdigest()
+    cache[hashed_key] = {'data': data, 'timestamp': time.time(), "duration": duration}
 
-def clear_cache():
-    """Clear all cached data"""
-    global cache
-    try:
-        if os.path.exists(cache_path):
-            os.remove(cache_path)
-        cache = {}
-        xbmcgui.Dialog().notification('KodiSeerr', 'Cache cleared successfully', xbmcgui.NOTIFICATION_INFO, 3000)
-    except Exception as e:
-        xbmc.log(f"[KodiSeerr] Clear cache error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Failed to clear cache', xbmcgui.NOTIFICATION_ERROR)
 
 def clean_cache():
     window = xbmcgui.Window(10000)

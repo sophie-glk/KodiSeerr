@@ -145,7 +145,7 @@ class TraktClient:
             use_cache = False
         cache_key = None
         if use_cache:
-         cache_key = hashlib.sha256(str(self.BASE_URL + endpoint + method + self.ID).encode("utf-8")).hexdigest()
+         cache_key = str(self.BASE_URL + endpoint + method + self.access_token + self.refresh_token)
          cached = get_cached(cache_key)
          if cached is not None:
             return cached
@@ -158,5 +158,6 @@ class TraktClient:
         )
         response.raise_for_status()
         data = response.json()
-        set_cached(cache_key, data)
+        if use_cache:
+            set_cached(cache_key, data)
         return data
