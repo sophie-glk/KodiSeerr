@@ -25,6 +25,7 @@ class Settings:
         preferences_path = self.get_preferences_path()
         prefs = load_file(preferences_path)
         
+        
     def enable_radarr(self):
         return self.addon.getSettingBool('radarr_enable')
     def enable_sonarr(self):
