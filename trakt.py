@@ -12,21 +12,21 @@ def trakt(trakt_mode, addon_handle, addon_data_path, page=1):
 def trakt_main_menu(addon_handle):
     xbmcplugin.setContent(addon_handle, 'files')
     items = [
-        ('recommended_shows',   'Recommended Shows',    'DefaultRecentlyAddedMovies.png', True),
-        ('recommended_movies',  'Recommended Movies',   'DefaultRecentlyAddedMovies.png', True),
-        ('trending_shows',      'Trending Shows',       'DefaultRecentlyAddedMovies.png', True),
-        ('trending_movies',     'Trending Movies',      'DefaultRecentlyAddedMovies.png', True),
-        ('popular_shows',       'Popular Shows',        'DefaultRecentlyAddedMovies.png', True),
-        ('popular_movies',      'Popular Movies',       'DefaultRecentlyAddedMovies.png', True),
-        ('watched_shows',       'Most Watched Shows',   'DefaultRecentlyAddedMovies.png', True),
-        ('watched_movies',      'Most Watched Movies',  'DefaultRecentlyAddedMovies.png', True),
-        ('played_shows',        'Most Played Shows',    'DefaultRecentlyAddedMovies.png', True),
-        ('played_movies',       'Most Played Movies',   'DefaultRecentlyAddedMovies.png', True),
-        ('collected_shows',     'Most Collected Shows', 'DefaultRecentlyAddedMovies.png', True),
-        ('collected_movies',    'Most Collected Movies','DefaultRecentlyAddedMovies.png', True),
-        ('anticipated_shows',   'Most Anticipated Shows',  'DefaultRecentlyAddedMovies.png', True),
-        ('anticipated_movies',  'Most Anticipated Movies', 'DefaultRecentlyAddedMovies.png', True),
-        ('boxoffice_movies',    'Box Office Movies',    'DefaultRecentlyAddedMovies.png', True),
+    ('recommended_shows',   'Recommended Shows',       'DefaultTVShows.png',              True),
+    ('recommended_movies',  'Recommended Movies',      'DefaultMovies.png',               True),
+    ('trending_shows',      'Trending Shows',          'DefaultTVShows.png',              True),
+    ('trending_movies',     'Trending Movies',         'DefaultMovies.png',               True),
+    ('popular_shows',       'Popular Shows',           'DefaultTVShows.png',              True),
+    ('popular_movies',      'Popular Movies',          'DefaultMovies.png',               True),
+    ('watched_shows',       'Most Watched Shows',      'DefaultRecentlyWatchedEpisodes.png', True),
+    ('watched_movies',      'Most Watched Movies',     'DefaultRecentlyWatchedMovies.png',  True),
+    ('played_shows',        'Most Played Shows',       'DefaultRecentlyWatchedEpisodes.png', True),
+    ('played_movies',       'Most Played Movies',      'DefaultRecentlyWatchedMovies.png',  True),
+    ('collected_shows',     'Most Collected Shows',    'DefaultTVShows.png',              True),
+    ('collected_movies',    'Most Collected Movies',   'DefaultMovies.png',               True),
+    ('anticipated_shows',   'Most Anticipated Shows',  'DefaultTVShows.png',              True),
+    ('anticipated_movies',  'Most Anticipated Movies', 'DefaultMovies.png',               True),
+    ('boxoffice_movies',    'Box Office Movies',       'DefaultMovies.png',               True),
     ]
 
     for item in items:
@@ -215,6 +215,10 @@ def show_boxoffice_movies(trakt_client, addon_handle):
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
+
+
+# ── Lists ───────────────────────────────────
+#TODO
 
 
 def display_response(response, media_type, addon_handle, use_tmdb_for_art = False):

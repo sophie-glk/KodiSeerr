@@ -146,7 +146,7 @@ class TraktClient:
         return data, total_number_of_pages
 
 
-
+    #TODO handle return coded and rate limits
     def api_request(self, method: str, endpoint: str, use_cache: bool = True, return_header: bool = False):
         if method != "GET":
             use_cache = False
