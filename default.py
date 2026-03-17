@@ -70,7 +70,7 @@ elif mode == "report_issue":
     from report_issue import report_issue
     report_issue(args.get('type'), args.get('id'))
 elif mode == "cancel_request":
-    from monitor_requests import cancel_request
+    from monitor_requests.monitor_requests import cancel_request
     cancel_request(args.get('id'), jellyseer_client, args.get("type"))
 elif mode == "jump_to_page":
     from utils import jump_to_page
@@ -107,19 +107,19 @@ elif mode == "request":
     skip_dialog = args.get("skip_dialog", False)
     do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_client, season, episode, skip_dialog)
 elif mode == "requests":
-    from monitor_requests import show_requests
+    from monitor_requests.monitor_requests import show_requests
     show_requests( page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings)
 elif mode == "showrequestedseasons":
-    from monitor_requests import show_requested_seasons
+    from monitor_requests.monitor_shows import show_requested_seasons
     id = args.get("id")
     show_requested_seasons(id, jellyseer_client, addon_handle, enable_sonarr)
 elif mode == "show_requested_episodes_by_season":
-    from monitor_requests import show_requested_episodes_by_season
+    from monitor_requests.monitor_shows import show_requested_episodes_by_season
     id = args.get("id")
     season = args.get("season")
     show_requested_episodes_by_season(id=id, season=season, jellyseer_client=jellyseer_client, sonarr_client=sonarr_client, addon_handle=addon_handle)
 elif mode == "show_requested_episodes":
-    from monitor_requests import show_requested_episodes
+    from monitor_requests.monitor_shows import show_requested_episodes
     show_requested_episodes(jellyseer_client, sonarr_client, settings, addon_handle)
 elif mode == "play_local_file":
     from play_local_file import play_local_file

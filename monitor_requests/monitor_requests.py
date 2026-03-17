@@ -1,0 +1,93 @@
+import xbmcplugin
+import xbmcgui
+import xbmc
+from utils import add_next_page_button, build_url
+
+def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings, pagesize = 25):
+    """Display user's requests with pagination"""   
+    data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": (page - 1) * pagesize, "sort": "added", "filter": "all"}, 
+                                        use_cache = False)
+    requested_items = data.get('results', []) if data else []
+
+    xbmcplugin.setContent(addon_handle, 'videos')
+    requests_data = settings.get_preferences("episode_requests")
+    if requests_data.get("requests", {}):
+        list_item = xbmcgui.ListItem(label="Single Episodes")
+        icon = "DefaultSets.png"
+        list_item.setArt({'icon': icon, 'thumb': icon})
+        url = build_url({"mode": "show_requested_episodes"})
+        xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)    
+    
+    for item in requested_items:
+        media = item.get('media', {})
+        id = media.get('tmdbId')
+        seer_status = media.get('status')
+        media_type = media.get('mediaType')
+        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
+        if(media_type == "movie"):
+          from monitor_requests.monitor_movies import show_movie_request
+          show_movie_request(id, mediaData, seer_status, item, radarr_client, addon_handle)
+        elif(media_type == "tv"):
+          from monitor_requests.monitor_shows import show_series_request
+          show_series_request(id, mediaData, seer_status, item, sonarr_client, addon_handle)
+    
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
+    xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
+    total_pages = data.get('pageInfo', {}).get("pages", 1)
+    add_next_page_button({"mode": "requests"}, page, total_pages, addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
+
+
+def get_url_by_status(status, id, media_type, season=1, episode_number=1):
+        is_directory = False
+        tmdb_type = media_type
+        if media_type == "episode":
+            tmdb_type = "tv"
+        if media_type != "movie":
+            is_directory = True
+        if status in [2, 3]:
+            url = build_url({"mode": "cancel_request", "id": id, "handle_empty_directory": is_directory})
+        elif status == 5:
+            url = build_url({"mode": "play_local_file", "id": id, "type": tmdb_type, "season": season, "episode": episode_number})
+        else:
+            url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
+        return url
+
+def get_context_menu_by_status(status, id, media_type, season=1, episode_nr=1, episode_id=-1):
+        context_menu = []
+        if status in [2, 3] and media_type != "episode":
+            url = build_url({"mode": "cancel_request", "id": id})
+            context_menu.append(('Cancel Request', f'RunPlugin({url})'))
+        if  media_type != "movie":
+            url = build_url({"mode": "request", "id": id, "type": "tv", "season": season})
+            context_menu.append(('Request more', f'RunPlugin({url})'))
+        if status == 5:
+            url = build_url({"mode": "delete_file", "id": id, "type": media_type, "season": season, "episode": episode_nr, "episode_id": episode_id})
+            context_menu.append(('Delete File', f'RunPlugin({url})'))  
+        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
+        context_menu.append(('Refresh', f'RunPlugin({build_url({"mode": "refresh"})})'))
+        return context_menu
+
+def is_directory(status):
+    if status == 5:
+        return False
+    return True
+
+#TODO Fix this feature, its broken
+def cancel_request(tmdb_id, jellyseer_client, media_type):
+    """Cancel a pending request"""
+    if not xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
+        return
+    requests = jellyseer_client.api_request("/request", use_cache=False).get("results", [])
+    request_id = -1
+    for request in requests:
+        media = request.get("media", {})
+        if str(tmdb_id) == str(media.get("tmdbId")):
+            request_id = request.get("id")
+            break
+    if request_id != -1:    
+        jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
+        xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
+        xbmc.executebuiltin('Container.Refresh')
+    else:
+        xbmcgui.Dialog().notification('KodiSeerr', f'Could not find a matching request', xbmcgui.NOTIFICATION_ERROR)
