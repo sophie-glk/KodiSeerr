@@ -3,9 +3,9 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 import json
-from create_client import create_client
+from apis.create_client import create_client
 import os
-from jellyseerr_api import JellyseerrClient
+from apis.jellyseerr_api import JellyseerrClient
 addon = xbmcaddon.Addon()
 monitor = xbmc.Monitor()
 

@@ -32,7 +32,7 @@ if enable_sonarr:
 
 mode = args.get('mode')
 page = int(args.get('page', 1))
-
+ 
 if args.get("handle_empty_directory") == "True":
     from utils import handle_empty_directory
     handle_empty_directory(addon_handle)
@@ -127,7 +127,7 @@ elif mode == "refresh":
     xbmc.executebuiltin('Container.Refresh')
 elif mode == "trakt":
     from trakt import trakt
-    trakt(args.get("trakt_mode" ,""), addon_handle, addon_data_path)
+    trakt(args.get("trakt_mode" ,""), addon_handle, addon_data_path, page)
 clean_cache()
 save_cache()
         

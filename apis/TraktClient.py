@@ -139,8 +139,15 @@ class TraktClient:
                 return True
         except FileNotFoundError:
             return False
+    
+    def paginated_request(self, method: str, endpoint:str, use_cache:bool = True):
+        data, headers = self.api_request(method, endpoint, use_cache=use_cache, return_header=True)
+        total_number_of_pages = int(headers.get("X-Pagination-Limit"))
+        return data, total_number_of_pages
 
-    def api_request(self, method: str, endpoint: str, use_cache: bool = True):
+
+
+    def api_request(self, method: str, endpoint: str, use_cache: bool = True, return_header: bool = False):
         if method != "GET":
             use_cache = False
         cache_key = None
@@ -148,7 +155,11 @@ class TraktClient:
          cache_key = str(self.BASE_URL + endpoint + method + self.access_token + self.refresh_token)
          cached = get_cached(cache_key)
          if cached is not None:
-            return cached
+            if return_header:
+                return cached.get("data"), cached.get("header")
+            else:
+                return cached.get("data")
+            
         if not self.access_token:
             xbmcgui.Dialog().notification("KodiSeerr", "Trakt not authorized", xbmcgui.NOTIFICATION_ERROR)
             return None
@@ -156,8 +167,12 @@ class TraktClient:
         response = requests.request(
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
+
         response.raise_for_status()
         data = response.json()
         if use_cache:
-            set_cached(cache_key, data)
-        return data
+            set_cached(cache_key, {"data": data, "header": response.headers})
+        if return_header:
+            return data, response.headers
+        else:
+            return data

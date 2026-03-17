@@ -35,6 +35,8 @@ class Settings:
     def get_preferences_path(self, filename):
         import xbmcvfs
         return xbmcvfs.translatePath(f"{self.data_path}/{filename}.json")
+    
+    
 
     
     

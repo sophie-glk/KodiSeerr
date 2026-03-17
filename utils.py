@@ -304,7 +304,7 @@ def jump_to_page(args):
         except ValueError:
             xbmcgui.Dialog().notification('KodiSeerr', 'Invalid page number', xbmcgui.NOTIFICATION_ERROR)
 
-def add_next_page_button(url_dict, page, total_pages, addon_handle):
+def add_next_page_button(url_dict, page: int, total_pages: int, addon_handle):
   import xbmcgui
   import xbmcplugin
   if page >= total_pages:

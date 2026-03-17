@@ -3,7 +3,7 @@ import xbmc
 def test_connection(addon):
     """Test connection to Jellyseerr server"""
     try:
-        from jellyseerr_api import JellyseerrClient
+        from apis.jellyseerr_api import JellyseerrClient
         
         test_url = addon.getSetting("jellyseerr_url").rstrip("/")
         test_username = addon.getSetting("jellyseerr_username")
