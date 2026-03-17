@@ -1,7 +1,6 @@
 import sys
 from cache import load_cache, save_cache, clean_cache
 from Settings import Settings
-from TraktClient import TraktClient
 import xbmcvfs
 import xbmcaddon
 import urllib
@@ -9,7 +8,6 @@ from create_client import create_client
 from jellyseerr_api import JellyseerrClient
 from radarr_api import RadarrClient
 from sonarr_api import SonarrClient
-import json
 load_cache()
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
@@ -32,9 +30,6 @@ if enable_radarr:
 if enable_sonarr:
  sonarr_client = create_client(SonarrClient)
 
-trakt_client = TraktClient("033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9",
-                            "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0", addon_data_path)
-#xbmc.log(f"[kodiseerr trakt] {json.dumps(resp)}", xbmc.LOGERROR)
 mode = args.get('mode')
 page = int(args.get('page', 1))
 
@@ -99,7 +94,7 @@ elif mode == "browse_handle_episodes":
     from browse import browse_handle_episodes
     browse_handle_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)  
 elif mode == "request":
-    from request import do_request
+    from do_request.request_main import do_request
     media_type = args.get("type")
     id = args.get("id")
     season = int(args.get("season", -1))
