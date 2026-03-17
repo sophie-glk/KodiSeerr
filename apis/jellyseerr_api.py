@@ -1,4 +1,4 @@
-from ApiClient import ApiClient
+from apis.ApiClient import ApiClient
 
 class JellyseerrClient(ApiClient):
     name = "jellyseerr"

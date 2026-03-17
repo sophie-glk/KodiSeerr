@@ -1,7 +1,7 @@
-from ApiClient import ApiClient
+from apis.ApiClient import ApiClient
 
-class RadarrClient(ApiClient):
-    name = "radarr"
+class SonarrClient(ApiClient):
+    name = "sonarr"
     def __init__(self, server_url,  api_token, has_4k=False, server_url_4k=None, api_token_4k=None):
        if server_url_4k is not None:
            server_url_4k = f"{server_url_4k}/api/v3"

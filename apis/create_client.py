@@ -1,6 +1,6 @@
 import xbmcaddon
-from jellyseerr_api import JellyseerrClient
-from ApiClient import ApiClient
+from apis.jellyseerr_api import JellyseerrClient
+from apis.ApiClient import ApiClient
 
 
 def create_client(client=JellyseerrClient):
