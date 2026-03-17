@@ -4,10 +4,10 @@ from Settings import Settings
 import xbmcvfs
 import xbmcaddon
 import urllib
-from create_client import create_client
-from jellyseerr_api import JellyseerrClient
-from radarr_api import RadarrClient
-from sonarr_api import SonarrClient
+from apis.create_client import create_client
+from apis.jellyseerr_api import JellyseerrClient
+from apis.radarr_api import RadarrClient
+from apis.sonarr_api import SonarrClient
 load_cache()
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
