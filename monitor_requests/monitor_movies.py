@@ -3,7 +3,7 @@ from utils import get_status_label, make_art, set_info_tag
 import xbmcgui
 import xbmcplugin
 
-def show_movie_request(id, mediaData, seer_status, item, radarr_client, addon_handle):
+def show_movie_request(id, request_id, mediaData, seer_status, item, radarr_client, addon_handle):
         requestData_radarr = []
         if radarr_client is not None:
             requestData_radarr = get_radarr_queue_data(radarr_client)
@@ -21,7 +21,6 @@ def show_movie_request(id, mediaData, seer_status, item, radarr_client, addon_ha
                  timeleft = item.get("timeleft")
              except:
                  continue
-        request_id = item.get('id')
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
         label_text += " " + get_status_label(int(seer_status))
         plot_text = ""
@@ -35,12 +34,12 @@ def show_movie_request(id, mediaData, seer_status, item, radarr_client, addon_ha
                                 plot_text += f" Download progress: {sizedone:.1f} GB / {size:.1f} GB."
         
         list_item = xbmcgui.ListItem(label=label_text)
-        list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, "movie"))
+        list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, request_id, "movie"))
         info = {'title': label_text, 'plot': plot_text}
         set_info_tag(list_item, info)
         art = make_art(mediaData)
         list_item.setArt(art)
-        xbmcplugin.addDirectoryItem(addon_handle, get_url_by_status(seer_status, id, "movie"), list_item, is_directory(seer_status))
+        xbmcplugin.addDirectoryItem(addon_handle, get_url_by_status(seer_status, id, request_id, "movie"), list_item, is_directory(seer_status))
 
 
 def get_radarr_queue_data(radarr_client):

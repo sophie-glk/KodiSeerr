@@ -66,7 +66,7 @@ elif mode == "report_issue":
     report_issue(args.get('type'), args.get('id'))
 elif mode == "cancel_request":
     from monitor_requests.monitor_requests import cancel_request
-    cancel_request(args.get('id'), jellyseer_client, args.get("type"))
+    cancel_request(args.get('request_id', -1), jellyseer_client, args.get("type"))
 elif mode == "jump_to_page":
     from utils import jump_to_page
     jump_to_page(args)
@@ -104,10 +104,9 @@ elif mode == "request":
 elif mode == "requests":
     from monitor_requests.monitor_requests import show_requests
     show_requests( page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings)
-elif mode == "showrequestedseasons":
+elif mode == "show_requested_seasons":
     from monitor_requests.monitor_shows import show_requested_seasons
-    id = args.get("id")
-    show_requested_seasons(id, jellyseer_client, addon_handle, enable_sonarr)
+    show_requested_seasons( args.get("id"), args.get("request_id"), jellyseer_client, addon_handle, enable_sonarr)
 elif mode == "show_requested_episodes_by_season":
     from monitor_requests.monitor_shows import show_requested_episodes_by_season
     id = args.get("id")

@@ -20,16 +20,17 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
     
     for item in requested_items:
         media = item.get('media', {})
-        id = media.get('tmdbId')
+        tmdb_id = media.get('tmdbId')
+        request_id = item.get("id", -1)
         seer_status = media.get('status')
         media_type = media.get('mediaType')
-        mediaData = jellyseer_client.api_request(f"/{media_type}/{id}", params={})
+        mediaData = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}", params={})
         if(media_type == "movie"):
           from monitor_requests.monitor_movies import show_movie_request
-          show_movie_request(id, mediaData, seer_status, item, radarr_client, addon_handle)
+          show_movie_request(tmdb_id, request_id, mediaData, seer_status, item, radarr_client, addon_handle)
         elif(media_type == "tv"):
           from monitor_requests.monitor_shows import show_series_request
-          show_series_request(id, mediaData, seer_status, item, sonarr_client, addon_handle)
+          show_series_request(tmdb_id, request_id, mediaData, seer_status, item, sonarr_client, addon_handle)
     
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
@@ -38,7 +39,7 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
 
 
-def get_url_by_status(status, id, media_type, season=1, episode_number=1):
+def get_url_by_status(status, tmdb_id, request_id, media_type, season=1, episode_number=1):
         is_directory = False
         tmdb_type = media_type
         if media_type == "episode":
@@ -46,25 +47,25 @@ def get_url_by_status(status, id, media_type, season=1, episode_number=1):
         if media_type != "movie":
             is_directory = True
         if status in [2, 3]:
-            url = build_url({"mode": "cancel_request", "id": id, "handle_empty_directory": is_directory})
+            url = build_url({"mode": "cancel_request", "request_id": request_id, "handle_empty_directory": is_directory, "type": media_type})
         elif status == 5:
-            url = build_url({"mode": "play_local_file", "id": id, "type": tmdb_type, "season": season, "episode": episode_number})
+            url = build_url({"mode": "play_local_file", "id": tmdb_id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
-            url = build_url({'mode': 'request', 'type': media_type, 'id': id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
+            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
         return url
 
-def get_context_menu_by_status(status, id, media_type, season=1, episode_nr=1, episode_id=-1):
+def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=1, episode_nr=1, episode_id=-1):
         context_menu = []
         if status in [2, 3] and media_type != "episode":
-            url = build_url({"mode": "cancel_request", "id": id})
+            url = build_url({"mode": "cancel_request", "request_id": request_id, "type": media_type}, )
             context_menu.append(('Cancel Request', f'RunPlugin({url})'))
         if  media_type != "movie":
-            url = build_url({"mode": "request", "id": id, "type": "tv", "season": season})
+            url = build_url({"mode": "request", "id": tmdb_id, "type": "tv", "season": season})
             context_menu.append(('Request more', f'RunPlugin({url})'))
         if status == 5:
-            url = build_url({"mode": "delete_file", "id": id, "type": media_type, "season": season, "episode": episode_nr, "episode_id": episode_id})
+            url = build_url({"mode": "delete_file", "id": tmdb_id, "type": media_type, "season": season, "episode": episode_nr, "episode_id": episode_id})
             context_menu.append(('Delete File', f'RunPlugin({url})'))  
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": id})})'))
+        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": tmdb_id})})'))
         context_menu.append(('Refresh', f'RunPlugin({build_url({"mode": "refresh"})})'))
         return context_menu
 
@@ -73,18 +74,13 @@ def is_directory(status):
         return False
     return True
 
-#TODO Fix this feature, its broken
-def cancel_request(tmdb_id, jellyseer_client, media_type):
+def cancel_request(request_id, jellyseer_client, media_type):
     """Cancel a pending request"""
-    if not xbmcgui.Dialog().yesno('KodiSeerr', 'Cancel this request?'):
+    if media_type == "episode":
+        xbmcgui.Dialog().info('KodiSeerr', "Single episode requests can not be canceled.")
         return
-    requests = jellyseer_client.api_request("/request", use_cache=False).get("results", [])
-    request_id = -1
-    for request in requests:
-        media = request.get("media", {})
-        if str(tmdb_id) == str(media.get("tmdbId")):
-            request_id = request.get("id")
-            break
+    if not xbmcgui.Dialog().yesno('KodiSeerr', "Do you want to cancel this request?"):
+        return
     if request_id != -1:    
         jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
         xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
