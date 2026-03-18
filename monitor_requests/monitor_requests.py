@@ -39,7 +39,7 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
     xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)    
 
 
-def get_url_by_status(status, tmdb_id, request_id, media_type, season=1, episode_number=1):
+def get_url_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_number=-1):
         is_directory = False
         tmdb_type = media_type
         if media_type == "episode":
@@ -54,7 +54,7 @@ def get_url_by_status(status, tmdb_id, request_id, media_type, season=1, episode
             url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
         return url
 
-def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=1, episode_nr=1, episode_id=-1):
+def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_nr=-1, episode_id=-1):
         context_menu = []
         if status in [2, 3] and media_type != "episode":
             url = build_url({"mode": "cancel_request", "request_id": request_id, "type": media_type}, )

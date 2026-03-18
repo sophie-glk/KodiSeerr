@@ -65,7 +65,7 @@ def show_requested_seasons(id, request_id, jellyseer_client, addon_handle, sonar
             url = build_url({"mode": "show_requested_episodes_by_season", "type": "tv", "id": id, "season": season_number})
         list_item.addContextMenuItems(get_context_menu_by_status(seer_status, id, request_id, "tv"))
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, True)      
-    xbmcplugin.endOfDirectory(addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle,  cacheToDisc=False)
 
 
 def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_client, addon_handle, filter = []):
@@ -105,7 +105,7 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
                     break
             if not found:
                 plot_text = "[COLOR red] (Missing) [/COLOR]"
-        url = get_url_by_status(status, id, "episode", season, ep_number)
+        url = get_url_by_status(status, id, id, "episode", season, ep_number)
         list_item = xbmcgui.ListItem(label = title)
         list_item.addContextMenuItems(get_context_menu_by_status(status, id, "-1", "episode", season, ep_number, episode_id))
         list_item.setInfo("video",  {'title': title, 'tvshowtitle': show_name, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})
@@ -117,8 +117,8 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
         
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, is_directory(status))
     xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_EPISODE)
-    xbmcplugin.endOfDirectory(addon_handle)    
-
+    if not filter:
+        xbmcplugin.endOfDirectory(addon_handle,  cacheToDisc=False)    
 
 def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
     sonarr_series = sonarr_client.api_request(f"/series", request_4k = use_4k, use_cache=False)

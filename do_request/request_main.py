@@ -7,7 +7,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     confirm_string = ""
     cancel = False
     if not skip_dialog:
-        cancel, confirm_string, media_type, seasons_to_request, episode_number = show_dialog(id, media_type, season, jellyseer_client, sonarr_client, addon_handle) 
+        cancel, confirm_string, media_type, seasons_to_request, episode_number = show_dialog(id, media_type, episode_number, season, jellyseer_client, sonarr_client, addon_handle) 
     if cancel:
         return
 
@@ -20,7 +20,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     show_quality_profiles = settings.show_quality_profiles()
 
     if media_type == "episode":
-        from do_request.request_main import request_episode
+        from do_request.request_episode import request_episode
         request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, settings)
         return
     
@@ -78,13 +78,12 @@ def ask_4k(settings):
             settings.save_preferences("last_quality", prefs)
         return is4k
 
-def show_dialog(id, media_type, season, jellyseer_client, sonarr_client, addon_handle):
+def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr_client, addon_handle):
     tv_request_types = []
     cancel = False
     confirm_string = ""
     return_type =  media_type
     seasons_to_request = [season]
-    episode_number = -1
     if media_type == "tv":
      if season > -1:
         tv_request_types.append(f"Request this season (Season {season})")    
