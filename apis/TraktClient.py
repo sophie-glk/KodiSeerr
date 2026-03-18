@@ -1,12 +1,10 @@
-import hashlib
-
 from cache import get_cached, set_cached
 import xbmc
 import xbmcgui
 import time
 import requests
 import json
-
+import time
 
 class TraktClient:
     BASE_URL = "https://api.trakt.tv"
@@ -15,6 +13,15 @@ class TraktClient:
         self.ID = "24aabe81-9074-4813-81bb-31dbec750d7d"
         self.client_id = client_id
         self.client_secret = client_secret
+
+        window = xbmcgui.Window(10000)
+        rate_limit_string = window.getProperty(self.ID+"rate_limits")
+        self.rate_limit = {"start": 0, "length": -1}
+        if rate_limit_string != "" and rate_limit_string is not None:
+            try:
+                self.rate_limit = json.loads(rate_limit_string)
+            except:
+                pass
         self.headers = {
             "Content-Type": "application/json",
             "trakt-api-version": "2",
@@ -141,38 +148,94 @@ class TraktClient:
             return False
     
     def paginated_request(self, method: str, endpoint:str, use_cache:bool = True):
-        data, headers = self.api_request(method, endpoint, use_cache=use_cache, return_header=True)
+        data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
         total_number_of_pages = int(headers.get("X-Pagination-Limit"))
         return data, total_number_of_pages
 
+    def api_request(self, method: str, endpoint: str, use_cache: bool = True):
+        data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
+        return data
+    
+    def __api_request(self, method: str, endpoint: str, use_cache: bool = True):
+        #check if we have run into a rate limit:
+        if time.time() - self.rate_limit.get("start", 0) <= self.rate_limit.get("length", -1):
+            xbmcgui.Dialog().notification(
+            heading="Trakt Error",
+            message="API Rate Limit Exceeded - please try again later",
+            icon=xbmcgui.NOTIFICATION_ERROR,
+            time=5000,
+            )
+            return {},{}
+        else:
+            self.rate_limit = {"start": 0, "length": -1}
 
-    #TODO handle return coded and rate limits
-    def api_request(self, method: str, endpoint: str, use_cache: bool = True, return_header: bool = False):
         if method != "GET":
             use_cache = False
         cache_key = None
+
         if use_cache:
          cache_key = str(self.BASE_URL + endpoint + method + self.access_token + self.refresh_token)
          cached = get_cached(cache_key)
          if cached is not None:
-            if return_header:
                 return cached.get("data"), cached.get("header")
-            else:
-                return cached.get("data")
             
         if not self.access_token:
             xbmcgui.Dialog().notification("KodiSeerr", "Trakt not authorized", xbmcgui.NOTIFICATION_ERROR)
-            return None
+            return {}
         authed_headers = {**self.headers, "Authorization": f"Bearer {self.access_token}"}
         response = requests.request(
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
 
-        response.raise_for_status()
+        headers = response.headers
+        status_code = response.status_code
+        
+        if not self.handle_status_code(status_code, headers):
+            xbmc.sleep(1000)
+            return False
+        
         data = response.json()
         if use_cache:
-            set_cached(cache_key, {"data": data, "header": response.headers})
-        if return_header:
-            return data, response.headers
-        else:
-            return data
+            set_cached(cache_key, {"data": data, "header": headers})
+        return data, response.headers
+
+    def handle_status_code(self, status_code: int, headers) -> bool:
+        if status_code in (200, 201, 204):
+            return True
+        
+        if status_code == 429:
+                self.rate_limit = {"start": time.time(), "length": int(headers.get("Retry-After", 30))}
+                window = xbmcgui.Window(10000)
+                window.setProperty(self.ID+"rate_limits", json.dumps(self.rate_limit))
+
+        error_messages = {
+            400: "Bad Request - request couldn't be parsed",
+            401: "Unauthorized - please log in again",
+            403: "Forbidden - invalid API key or unapproved app",
+            404: "Not Found - no record found",
+            405: "Method Not Found",
+            409: "Conflict - resource already exists",
+            412: "Precondition Failed - invalid content type",
+            420: "Account Limit Exceeded - list or item count limit reached",
+            422: "Unprocessable Entity - validation error",
+            423: "Locked User Account - please contact Trakt support",
+            426: "VIP Only - upgrade your Trakt account",
+            429: "API Rate Limit Exceeded - please try again later",
+            500: "Trakt Server Error - please try again later",
+            502: "Trakt Unavailable - server overloaded, try again in 30s",
+            503: "Trakt Unavailable - server overloaded, try again in 30s",
+            504: "Trakt Unavailable - server overloaded, try again in 30s",
+            520: "Trakt Unavailable - Cloudflare error",
+            521: "Trakt Unavailable - Cloudflare error",
+            522: "Trakt Unavailable - Cloudflare error",
+        }
+
+        message = error_messages.get(status_code, f"Unexpected error (HTTP {status_code})")
+        xbmcgui.Dialog().notification(
+            heading="Trakt Error",
+            message=message,
+            icon=xbmcgui.NOTIFICATION_ERROR,
+            time=5000,
+        )
+
+        return False
