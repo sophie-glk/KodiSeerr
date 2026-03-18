@@ -51,7 +51,7 @@ def get_url_by_status(status, tmdb_id, request_id, media_type, season=-1, episod
         elif status == 5:
             url = build_url({"mode": "play_local_file", "id": tmdb_id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
-            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "skip_dialog": True, "handle_empty_directory": is_directory})
+            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "handle_empty_directory": is_directory})
         return url
 
 def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_nr=-1, episode_id=-1):
