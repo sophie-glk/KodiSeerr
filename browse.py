@@ -1,18 +1,18 @@
+from do_request.request_main import do_request
 from utils import build_url, handle_empty_directory
-import xbmc
 import xbmcplugin
 import xbmcgui
-def browse_menu(media_type, id, jellyseer_client, addon_handle, season = -1, episode = -1):
+def browse_menu(media_type, id, jellyseer_client, sonarr_client, settings, addon_handle, season = -1, episode = -1):
     if media_type != "tv":
-        xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id, "season": season, "episode": episode})})')
+        do_request(media_type, id, settings, jellyseer_client, addon_handle , sonarr_client, season, episode)
         return
     name = jellyseer_client.api_request(f"/tv/{id}").get("name")
     selected = xbmcgui.Dialog().select(name, ["Request", "Browse"])
     if selected == -1:
         return
     elif selected == 0:
+        do_request(media_type, id, settings, jellyseer_client, addon_handle , sonarr_client, season, episode)
         handle_empty_directory(addon_handle)
-        xbmc.executebuiltin(f'RunPlugin({build_url({"mode": "request", "type": media_type, "id": id})})')
         return
     browse_handle_season(id, jellyseer_client, addon_handle)
 

@@ -39,7 +39,10 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
             art = make_art(item)
             set_info_tag(list_item, info)
             list_item.setArt(art)
-            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, False)
+            isFolder = False
+            if media_type != "movie":
+                isFolder = True
+            xbmcplugin.addDirectoryItem(addon_handle, url, list_item, isFolder)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)

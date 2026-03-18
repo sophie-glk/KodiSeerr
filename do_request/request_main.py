@@ -84,7 +84,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
     confirm_string = ""
     return_type =  media_type
     seasons_to_request = [season]
-    if media_type == "tv":
+    if media_type != "movie":
      if season > -1:
         tv_request_types.append(f"Request this season (Season {season})")    
      if sonarr_client is not None and episode_number > -1:
