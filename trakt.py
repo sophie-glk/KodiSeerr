@@ -237,7 +237,7 @@ def display_response(response, media_type, addon_handle, use_tmdb_for_art = Fals
         genres = rec.get("genres", [])
         rating = rec.get("rating", "")
         votes = rec.get("votes", "")
-        runtime = rec.get("runtime", "")
+        runtime = int(rec.get("runtime", ""))*60 #Trakt returns in minutes, kodi expects in seconds
         context_menu = []
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": tmdb_id})})'))
         context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": tmdb_id})})'))
