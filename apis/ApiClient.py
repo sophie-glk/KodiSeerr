@@ -66,7 +66,7 @@ class ApiClient:
             )
             response.raise_for_status()
         except requests.RequestException as e:
-            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
+           # self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
             raise e
         except requests.ConnectionError as e:
             self.__error_notification("A Connection error occurred.", e)
