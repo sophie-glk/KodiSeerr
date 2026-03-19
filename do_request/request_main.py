@@ -29,6 +29,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
         quality_profile = ask_quality_profile(jellyseer_client, media_type, is4k)
 
     if confirm_before_request:
+        title_data = None
         try:
             title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
         except:
