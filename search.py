@@ -1,10 +1,10 @@
 import xbmcplugin
 import xbmcgui
-from utils import add_next_page_button, get_status_label, handle_empty_directory, make_art
-from utils import make_info
-from utils import get_media_status
-from utils import build_url
-from utils import set_info_tag
+from utils.utils import add_next_page_button, get_status_label, handle_empty_directory, make_art
+from utils.utils import make_info
+from utils.utils import get_media_status
+from utils.url_handling import build_url
+from utils.utils import set_info_tag
 def search(search_string, jellyseer_client, settings, addon_handle, page = 1, external_keyboard = False):
     #make sure we get new search item by avoiding caching
     if not search_string and not external_keyboard:

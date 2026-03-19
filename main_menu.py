@@ -1,7 +1,7 @@
 
 import xbmcplugin
 import xbmcgui
-from utils import build_url
+from utils.url_handling import build_url
 def main_menu(addon_handle):
     xbmcplugin.setContent(addon_handle, 'files')
     items = [

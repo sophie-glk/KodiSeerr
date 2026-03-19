@@ -1,6 +1,7 @@
 import sys
 from cache import load_cache, save_cache, clean_cache
 from Settings import Settings
+from utils.url_handling import set_base_url
 import xbmcvfs
 import xbmcaddon
 import urllib
@@ -16,8 +17,8 @@ addon_data_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.ge
 settings = Settings(addon_data_path , addon)
 addon_handle = int(sys.argv[1])
 addon_path = addon.getAddonInfo('path')
-
 base_url = sys.argv[0]
+set_base_url(base_url)
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
 jellyseer_client = create_client(JellyseerrClient)
 
@@ -34,9 +35,9 @@ mode = args.get('mode')
 page = int(args.get('page', 1))
 
 if args.get("handle_empty_directory") == "True":
-    from utils import handle_empty_directory
+    from utils.utils import handle_empty_directory
     handle_empty_directory(addon_handle)
-    
+
 if not mode:
     from main_menu import main_menu
     main_menu(addon_handle)
@@ -68,7 +69,7 @@ elif mode == "cancel_request":
     from monitor_requests.monitor_requests import cancel_request
     cancel_request(args.get('request_id', -1), jellyseer_client, args.get("type"))
 elif mode == "jump_to_page":
-    from utils import jump_to_page
+    from utils.utils import jump_to_page
     jump_to_page(args)
 elif mode == "collections":
     from list_collections import list_collections

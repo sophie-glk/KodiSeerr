@@ -1,4 +1,5 @@
-from utils import build_url, make_art, make_info, set_info_tag
+from utils.utils import make_art, make_info, set_info_tag
+from utils.url_handling import build_url
 import xbmcgui
 import xbmcplugin
 import xbmc

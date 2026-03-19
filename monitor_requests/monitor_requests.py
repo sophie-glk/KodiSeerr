@@ -1,7 +1,9 @@
+from utils.url_handling import build_url
 import xbmcplugin
 import xbmcgui
 import xbmc
-from utils import add_next_page_button, build_url
+from utils.utils import add_next_page_button
+
 
 def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings, pagesize = 25):
     """Display user's requests with pagination"""   

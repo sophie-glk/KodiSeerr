@@ -1,5 +1,7 @@
 from do_request.request_main import do_request
-from utils import build_url, handle_empty_directory
+from utils.utils import handle_empty_directory
+from utils.url_handling import build_url
+
 import xbmcplugin
 import xbmcgui
 def browse_menu(media_type, id, jellyseer_client, sonarr_client, settings, addon_handle, season = -1, episode = -1):

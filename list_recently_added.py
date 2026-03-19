@@ -1,4 +1,6 @@
-from utils import build_url, make_art, make_info, set_info_tag
+from utils.utils import make_art, make_info, set_info_tag
+from utils.url_handling import build_url
+
 import xbmcplugin
 import xbmcgui
 def list_recently_added(page, jellyseer_client, addon_handle):

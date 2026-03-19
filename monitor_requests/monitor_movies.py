@@ -1,5 +1,5 @@
 from monitor_requests.monitor_requests import get_context_menu_by_status, get_url_by_status, is_directory
-from utils import get_status_label, make_art, set_info_tag
+from utils.utils import get_status_label, make_art, set_info_tag
 import xbmcgui
 import xbmcplugin
 

@@ -12,16 +12,16 @@ class Settings:
     def enable_ask_4k(self):
         return self.addon.getSettingBool('enable_ask_4k')
     def get_preferences(self, name):
-        from utils import load_file
+        from utils.utils import load_file
         preferences_path = self.get_preferences_path(name)
         return load_file(preferences_path)
     def save_preferences(self, name, data):
-        from utils import save_file
+        from utils.utils import save_file
         preferences_path = self.get_preferences_path(name)
         save_file(data, preferences_path)
 
     def get_episode_requests(self):
-        from utils import load_file
+        from utils.utils import load_file
         preferences_path = self.get_preferences_path()
         prefs = load_file(preferences_path)
         

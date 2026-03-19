@@ -2,11 +2,9 @@ import hashlib
 
 import xbmcaddon
 import xbmcvfs
-import xbmc
 import xbmcgui
 import xbmcaddon
 import time
-import os
 import json
 
 addon = xbmcaddon.Addon()

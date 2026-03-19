@@ -1,12 +1,12 @@
 import xbmcplugin
 import xbmcgui
-from utils import build_url
-from utils import make_art
-from utils import make_art
-from utils import set_info_tag
-from utils import get_media_status
-from utils import get_status_label
-from utils import make_info
+from utils.url_handling import build_url
+from utils.utils import make_art
+from utils.utils import make_art
+from utils.utils import set_info_tag
+from utils.utils import get_media_status
+from utils.utils import get_status_label
+from utils.utils import make_info
 
 def list_collections(page, jellyseer_client, image_base, addon_handle):
     """List movie collections"""

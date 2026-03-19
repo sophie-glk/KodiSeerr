@@ -1,9 +1,6 @@
+from utils.url_handling import build_url
+
 image_base = "https://image.tmdb.org/t/p/w500"
-def build_url(query):
-    from os import sys
-    import urllib.parse
-    base_url = sys.argv[0]
-    return base_url + '?' + urllib.parse.urlencode(query)
 
 def set_info_tag(list_item, info):
     info_tag = list_item.getVideoInfoTag()
