@@ -40,7 +40,7 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
 
       if confirm_before_request:
         title = series_data.get("title")
-        msg = f"Request {title}: {episode_title}"
+        msg = f"Request {title}: {episode_title} (S{season}E{episode_number})"
         if is4k:
             msg += " in 4K"
         msg += "?"

@@ -7,7 +7,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     confirm_string = ""
     cancel = False
     if not skip_dialog:
-        cancel, confirm_string, media_type, seasons_to_request, episode_number = show_dialog(id, media_type, episode_number, season, jellyseer_client, sonarr_client, addon_handle) 
+        cancel, confirm_string, media_type, seasons_to_request, episode_number = show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr_client, addon_handle) 
     if cancel:
         return
 
@@ -21,7 +21,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
 
     if media_type == "episode":
         from do_request.request_episode import request_episode
-        request_episode(id, season, episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, settings)
+        request_episode(id, seasons_to_request[0], episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, settings)
         return
     
     quality_profile = None
@@ -82,13 +82,13 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
     tv_request_types = []
     cancel = False
     confirm_string = ""
-    return_type =  media_type
+    return_type =  "tv"
     seasons_to_request = [season]
     if media_type != "movie":
      if season > -1:
         tv_request_types.append(f"Request this season (Season {season})")    
      if sonarr_client is not None and episode_number > -1:
-        tv_request_types.append("Request this episode")         
+        tv_request_types.append(f"Request this episode (S{season}E{episode_number})")         
      tv_request_types += [ "Request all seasons", "Choose a season to request"]
      if sonarr_client is not None:
         tv_request_types.append("Choose an episode to request")     
@@ -149,7 +149,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
              cancel = True
              return cancel, confirm_string, return_type, seasons_to_request, episode_number   
          episode_number = int(episode_list[selected].getProperty("ep_nr"))
-         media_type = "episode"
+         return_type = "episode"
     
     return cancel, confirm_string, return_type, seasons_to_request, episode_number
 
