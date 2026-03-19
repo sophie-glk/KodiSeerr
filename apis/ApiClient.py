@@ -1,6 +1,4 @@
-import urllib.request
-import urllib.error
-import ssl
+import requests
 import xbmcaddon
 import xbmc
 import json
@@ -8,73 +6,101 @@ from urllib.parse import urlencode, quote
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k = None, api_token_4k=None):
+    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None):
         self.endpoint_url = endpoint_url
         self.api_token = api_token
-        self.opener = None
+        self.session = None
         self.name = ""
         self.__has4k = has4k
         self.endpoint_url_4k = endpoint_url_4k
         self.api_token_4k = api_token_4k
-        self.init_opener()
+        self.init_session()
 
-    def init_opener(self):
-        """Initializes the opener with SSL context based on addon settings."""
+    def init_session(self):
+        """Initializes the requests session with SSL verification based on addon settings."""
         addon = xbmcaddon.Addon()
         allow_self_signed = addon.getSettingBool("allow_self_signed")
 
-        if allow_self_signed:
-            ssl_context = ssl._create_unverified_context()
-        else:
-            ssl_context = ssl.create_default_context()
+        self.session = requests.Session()
+        self.session.verify = not allow_self_signed
 
-        https_handler = urllib.request.HTTPSHandler(context=ssl_context)
-        self.opener = urllib.request.build_opener(https_handler)
-    
     def has4k(self):
         return self.__has4k
 
-    def api_request(self, endpoint, method="GET", data=None, params=None, request_4k = False, use_cache = True):
+    def api_request(self, endpoint, method="GET", data=None, params=None, request_4k=False, use_cache=True):
         """Sends an authenticated API request to the server."""
         if method != "GET":
             use_cache = False
-        if not request_4k:
-            token = self.api_token
-            url = f"{self.endpoint_url}{endpoint}"
-        else:
-            token = self.api_token_4k
-            url = f"{self.endpoint_url}{endpoint}"
+
+        token = self.api_token_4k if request_4k else self.api_token
+        url = f"{self.endpoint_url}{endpoint}"
+
         data_json = ""
         if params:
             safe_params = {k: str(v) for k, v in params.items()}
             url += '?' + urlencode(safe_params, quote_via=quote)
+
         if data is not None:
             data_json = json.dumps(data, separators=(',', ':'))
-            data = data_json.encode('utf-8')
+
         cache_key = None
         if use_cache:
-         cache_key = str(url + endpoint + method + data_json + token)
-         cached = get_cached(cache_key)
-         if cached is not None:
-            return cached
-        req = urllib.request.Request(url, data=data, method=method)
-        req.add_header("Accept", "application/json")
-        req.add_header("X-Api-Key", token)
-        if method == "POST" or method == "PUT":
-            req.add_header("Content-Type", "application/json")   
+            cache_key = str(url + endpoint + method + data_json + token)
+            cached = get_cached(cache_key)
+            if cached is not None:
+                return cached
+
+        headers = {
+            "Accept": "application/json",
+            "X-Api-Key": token,
+        }
+        if method in ("POST", "PUT"):
+            headers["Content-Type"] = "application/json"
+
         try:
-            with self.opener.open(req) as resp:
-                raw_data = resp.read()
-                if not raw_data:
-                    return {} 
-                response = json.loads(raw_data)
-                if use_cache:
-                 set_cached(cache_key, response)
-                return response
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode() if e.fp else ""
-            xbmc.log(f"[kodiseerr] {self.name} API request failed: {e.code} {e.reason} - {error_body}", xbmc.LOGERROR)
-            return None
-        except urllib.error.URLError as e:
-            xbmc.log(f"[kodiseerr] {self.name} API request failed: {e.reason}", xbmc.LOGERROR)
-            return None
+            response = self.session.request(
+                method=method,
+                url=url,
+                data=data_json.encode("utf-8") if data_json else None,
+                headers=headers,
+            )
+            response.raise_for_status()
+        except requests.RequestException as e:
+            self.__error_notification("There was an ambiguous exception that occurred while handling this request.")
+            raise e
+        except requests.ConnectionError as e:
+            self.__error_notification("A Connection error occurred.")
+            raise e
+        except requests.TooManyRedirects as e:
+            self.__error_notification("Too many redirects.")
+            raise e
+        except requests.Timeout as e:
+            self.__error_notification("The request timed out.")
+            raise e
+        if not self.__handle_status_code(response.status_code):
+            raise requests.HTTPError
+        if not response.content:
+            return {}
+        try:
+            result = response.json()
+        except requests.JSONDecodeError as e:
+            self.__error_notification("No valid json received")
+            raise e
+        if use_cache:
+            set_cached(cache_key, result)
+        return result
+    
+    def __handle_status_code(self, status_code: int) -> bool:
+        if status_code == 200:
+            return True
+        self.__error_notification("An API error occured")
+        return False
+    
+    def __error_notification(self, message):
+            xbmcgui.Dialog().notification(
+            heading=f"[kodiseer] {self.name}",
+            message=message,
+            icon=xbmcgui.NOTIFICATION_ERROR,
+            time=5000,
+        )
+    
