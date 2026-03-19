@@ -183,9 +183,22 @@ class TraktClient:
             xbmcgui.Dialog().notification("KodiSeerr", "Trakt not authorized", xbmcgui.NOTIFICATION_ERROR)
             return {}
         authed_headers = {**self.headers, "Authorization": f"Bearer {self.access_token}"}
-        response = requests.request(
+        try:
+            response = requests.request(
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
+        except requests.RequestException as e:
+            self.__error_notification("There was an ambiguous exception that occurred while handling this request.")
+            raise e
+        except requests.ConnectionError as e:
+            self.__error_notification("A Connection error occurred.")
+            raise e
+        except requests.TooManyRedirects as e:
+            self.__error_notification("Too many redirects.")
+            raise e
+        except requests.Timeout as e:
+            self.__error_notification("The request timed out.")
+            raise e
 
         headers = response.headers
         status_code = response.status_code
@@ -193,8 +206,12 @@ class TraktClient:
         if not self.handle_status_code(status_code, headers):
             xbmc.sleep(1000)
             return False
-        
-        data = response.json()
+        try:
+            data = response.json()
+        except requests.JSONDecodeError as e:
+            self.__error_notification("No valid json received")
+            raise e
+
         if use_cache:
             set_cached(cache_key, {"data": data, "header": headers})
         return data, response.headers
@@ -231,11 +248,14 @@ class TraktClient:
         }
 
         message = error_messages.get(status_code, f"Unexpected error (HTTP {status_code})")
-        xbmcgui.Dialog().notification(
+        self.__error_notification(message)
+
+        return False
+    
+    def __error_notification(message):
+            xbmcgui.Dialog().notification(
             heading="Trakt Error",
-            message=message,
+            message="There was an ambiguous exception that occurred while handling this request.",
             icon=xbmcgui.NOTIFICATION_ERROR,
             time=5000,
         )
-
-        return False
