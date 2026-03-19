@@ -42,10 +42,11 @@ def make_art(item):
     for k in ["posterPath", "backdropPath", "logoPath", "bannerPath", "landscapePath", "iconPath", "clearartPath"]:
         if item.get(k):
             if k == "posterPath":
+                pass
                 art["poster"] = image_base + item[k]
-                art["thumb"] = image_base + item[k]
             elif k == "backdropPath":
                 art["fanart"] = image_base + item[k]
+                art["thumb"] = image_base + item[k]
             elif k == "logoPath":
                 art["clearlogo"] = image_base + item[k]
             elif k == "bannerPath":
