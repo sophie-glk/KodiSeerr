@@ -11,7 +11,10 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
         xbmcplugin.setContent(addon_handle, 'videos')
-        data = jellyseer_client.api_request('/search', params={'query': search_string, "page": page})
+        try:
+            data = jellyseer_client.api_request('/search', params={'query': search_string, "page": page})
+        except:
+            return
         results = data.get('results', []) if data else []
         total_pages = data.get("totalPages", 1)
         for item in results:

@@ -15,8 +15,10 @@ def list_collections(page, jellyseer_client, image_base, addon_handle):
         page = int(page)
     except:
         page = 1
-    
-    data = jellyseer_client.api_request("/discover/movies", params={"page": page, "sortBy": "popularity.desc"})
+    try:
+        data = jellyseer_client.api_request("/discover/movies", params={"page": page, "sortBy": "popularity.desc"})
+    except:
+        return 
     
     if data:
         items = data.get('results', [])
@@ -40,7 +42,10 @@ def list_collections(page, jellyseer_client, image_base, addon_handle):
 def show_collection_details(collection_id, settings, jellyseer_client, addon_handle):
     """Show movies in a collection"""
     xbmcplugin.setContent(addon_handle, 'movies')
-    data = jellyseer_client.api_request(f"/collection/{collection_id}")
+    try:
+        data = jellyseer_client.api_request(f"/collection/{collection_id}")
+    except:
+        return
     
     if data:
         parts = data.get('parts', [])

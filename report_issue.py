@@ -12,7 +12,10 @@ def report_issue(media_type, media_id, jellyseer_client):
             "issueType": selected + 1,
             "message": message or ""
         }
-        jellyseer_client.api_request(f"/{media_type}/{media_id}/issue", method="POST", data=payload)
+        try:
+            jellyseer_client.api_request(f"/{media_type}/{media_id}/issue", method="POST", data=payload)
+        except:
+            return
         xbmcgui.Dialog().notification('KodiSeerr', 'Issue reported', xbmcgui.NOTIFICATION_INFO)
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)

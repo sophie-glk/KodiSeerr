@@ -13,23 +13,22 @@ def trakt(trakt_mode, addon_handle, addon_data_path, page=1):
 def trakt_main_menu(addon_handle):
     xbmcplugin.setContent(addon_handle, 'files')
     items = [
-    ('recommended_shows',   'Recommended Shows',       'DefaultTVShows.png',              True),
-    ('recommended_movies',  'Recommended Movies',      'DefaultMovies.png',               True),
-    ('trending_shows',      'Trending Shows',          'DefaultTVShows.png',              True),
-    ('trending_movies',     'Trending Movies',         'DefaultMovies.png',               True),
-    ('popular_shows',       'Popular Shows',           'DefaultTVShows.png',              True),
-    ('popular_movies',      'Popular Movies',          'DefaultMovies.png',               True),
-    ('watched_shows',       'Most Watched Shows',      'DefaultRecentlyWatchedEpisodes.png', True),
-    ('watched_movies',      'Most Watched Movies',     'DefaultRecentlyWatchedMovies.png',  True),
-    ('played_shows',        'Most Played Shows',       'DefaultRecentlyWatchedEpisodes.png', True),
-    ('played_movies',       'Most Played Movies',      'DefaultRecentlyWatchedMovies.png',  True),
-    ('collected_shows',     'Most Collected Shows',    'DefaultTVShows.png',              True),
-    ('collected_movies',    'Most Collected Movies',   'DefaultMovies.png',               True),
-    ('anticipated_shows',   'Most Anticipated Shows',  'DefaultTVShows.png',              True),
-    ('anticipated_movies',  'Most Anticipated Movies', 'DefaultMovies.png',               True),
-    ('boxoffice_movies',    'Box Office Movies',       'DefaultMovies.png',               True),
+        ('recommended_shows',   'Recommended Shows',       'DefaultTVShows.png',              True),
+        ('recommended_movies',  'Recommended Movies',      'DefaultMovies.png',               True),
+        ('trending_shows',      'Trending Shows',          'DefaultTVShows.png',              True),
+        ('trending_movies',     'Trending Movies',         'DefaultMovies.png',               True),
+        ('popular_shows',       'Popular Shows',           'DefaultTVShows.png',              True),
+        ('popular_movies',      'Popular Movies',          'DefaultMovies.png',               True),
+        ('watched_shows',       'Most Watched Shows',      'DefaultRecentlyWatchedEpisodes.png', True),
+        ('watched_movies',      'Most Watched Movies',     'DefaultRecentlyWatchedMovies.png',  True),
+        ('played_shows',        'Most Played Shows',       'DefaultRecentlyWatchedEpisodes.png', True),
+        ('played_movies',       'Most Played Movies',      'DefaultRecentlyWatchedMovies.png',  True),
+        ('collected_shows',     'Most Collected Shows',    'DefaultTVShows.png',              True),
+        ('collected_movies',    'Most Collected Movies',   'DefaultMovies.png',               True),
+        ('anticipated_shows',   'Most Anticipated Shows',  'DefaultTVShows.png',              True),
+        ('anticipated_movies',  'Most Anticipated Movies', 'DefaultMovies.png',               True),
+        ('boxoffice_movies',    'Box Office Movies',       'DefaultMovies.png',               True),
     ]
-
     for item in items:
         if item[0] is None:
             continue
@@ -44,7 +43,6 @@ def handle_trakt(trakt_mode, addon_handle, addon_data_path, page=1):
     client_id = "033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9"
     client_secret = "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0"
     trakt_client = TraktClient(client_id, client_secret, addon_data_path)
-
     if trakt_mode == "recommended_shows":
         show_recommended_shows(trakt_client, addon_handle)
     elif trakt_mode == "recommended_movies":
@@ -77,24 +75,31 @@ def handle_trakt(trakt_mode, addon_handle, addon_data_path, page=1):
         show_boxoffice_movies(trakt_client, addon_handle)
 
 # ── Recommended (no pagination per API) ──────────────────────────────────────
-
 def show_recommended_shows(trakt_client, addon_handle):
-    recommendations = trakt_client.api_request("GET", "/recommendations/shows?ignore_collected=false&ignore_watchlisted=false&limit=25&extended=full,images")
+    try:
+        recommendations = trakt_client.api_request("GET", "/recommendations/shows?ignore_collected=false&ignore_watchlisted=false&limit=25&extended=full,images")
+    except Exception:
+        return
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(recommendations, "tv", addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
 
 def show_recommended_movies(trakt_client, addon_handle):
-    recommendations = trakt_client.api_request("GET", "/recommendations/movies?ignore_collected=false&ignore_watchlisted=false&limit=25&extended=full,images")
+    try:
+        recommendations = trakt_client.api_request("GET", "/recommendations/movies?ignore_collected=false&ignore_watchlisted=false&limit=25&extended=full,images")
+    except Exception:
+        return
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(recommendations, "movie", addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Trending ──────────────────────────────────────────────────────────────────
-
 def show_trending_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/movies/trending?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/movies/trending?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     trending = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(trending, "movie", addon_handle)
@@ -103,7 +108,10 @@ def show_trending_movies(trakt_client, addon_handle, page=1, number_of_items=25)
 
 def show_trending_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/shows/trending?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/shows/trending?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     trending = [r.get("show") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(trending, "tv", addon_handle)
@@ -111,10 +119,12 @@ def show_trending_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Popular ───────────────────────────────────────────────────────────────────
-
 def show_popular_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    popular, total_pages = trakt_client.paginated_request("GET", f"/shows/popular?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        popular, total_pages = trakt_client.paginated_request("GET", f"/shows/popular?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(popular, "tv", addon_handle)
     add_next_page_button({"mode": "trakt", "trakt_mode": "popular_shows"}, int(page), int(total_pages), addon_handle)
@@ -122,17 +132,24 @@ def show_popular_shows(trakt_client, addon_handle, page=1, number_of_items=25):
 
 def show_popular_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    popular, total_pages = trakt_client.paginated_request("GET", f"/movies/popular?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        popular, total_pages = trakt_client.paginated_request("GET", f"/movies/popular?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(popular, "movie", addon_handle)
     add_next_page_button({"mode": "trakt", "trakt_mode": "popular_movies"}, int(page), int(total_pages), addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
-from utils.utils import build_url
-# ── Most Watched ──────────────────────────────────────────────────────────────
 
+from utils.utils import build_url
+
+# ── Most Watched ──────────────────────────────────────────────────────────────
 def show_watched_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/shows/watched/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/shows/watched/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     shows = [r.get("show") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(shows, "tv", addon_handle)
@@ -141,7 +158,10 @@ def show_watched_shows(trakt_client, addon_handle, page=1, number_of_items=25):
 
 def show_watched_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/movies/watched/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/movies/watched/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     movies = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
@@ -149,10 +169,12 @@ def show_watched_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Most Played ───────────────────────────────────────────────────────────────
-
 def show_played_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/shows/played/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/shows/played/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     shows = [r.get("show") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(shows, "tv", addon_handle)
@@ -161,7 +183,10 @@ def show_played_shows(trakt_client, addon_handle, page=1, number_of_items=25):
 
 def show_played_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/movies/played/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/movies/played/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     movies = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
@@ -169,10 +194,12 @@ def show_played_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Most Collected ────────────────────────────────────────────────────────────
-
 def show_collected_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/shows/collected/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/shows/collected/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     shows = [r.get("show") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(shows, "tv", addon_handle)
@@ -181,7 +208,10 @@ def show_collected_shows(trakt_client, addon_handle, page=1, number_of_items=25)
 
 def show_collected_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/movies/collected/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/movies/collected/weekly?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     movies = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
@@ -189,10 +219,12 @@ def show_collected_movies(trakt_client, addon_handle, page=1, number_of_items=25
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Most Anticipated ──────────────────────────────────────────────────────────
-
 def show_anticipated_shows(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/shows/anticipated?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/shows/anticipated?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     shows = [r.get("show") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(shows, "tv", addon_handle)
@@ -201,7 +233,10 @@ def show_anticipated_shows(trakt_client, addon_handle, page=1, number_of_items=2
 
 def show_anticipated_movies(trakt_client, addon_handle, page=1, number_of_items=25):
     from utils.utils import add_next_page_button
-    response, total_pages = trakt_client.paginated_request("GET", f"/movies/anticipated?extended=full,images&page={page}&limit={number_of_items}")
+    try:
+        response, total_pages = trakt_client.paginated_request("GET", f"/movies/anticipated?extended=full,images&page={page}&limit={number_of_items}")
+    except Exception:
+        return
     movies = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
@@ -209,20 +244,20 @@ def show_anticipated_movies(trakt_client, addon_handle, page=1, number_of_items=
     xbmcplugin.endOfDirectory(addon_handle)
 
 # ── Box Office (top 10 only, no pagination) ───────────────────────────────────
-
 def show_boxoffice_movies(trakt_client, addon_handle):
-    response = trakt_client.api_request("GET", "/movies/boxoffice?extended=full,images")
+    try:
+        response = trakt_client.api_request("GET", "/movies/boxoffice?extended=full,images")
+    except Exception:
+        return
     movies = [r.get("movie") for r in response]
     xbmcplugin.setContent(addon_handle, 'videos')
     display_response(movies, "movie", addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
 
-
 # ── Lists ───────────────────────────────────
-#TODO
+# TODO
 
-
-def display_response(response, media_type, addon_handle, use_tmdb_for_art = False):
+def display_response(response, media_type, addon_handle, use_tmdb_for_art=False):
     if response is None:
         return
     isFolder = True
@@ -238,7 +273,7 @@ def display_response(response, media_type, addon_handle, use_tmdb_for_art = Fals
         genres = rec.get("genres", [])
         rating = rec.get("rating", "")
         votes = rec.get("votes", "")
-        runtime = int(rec.get("runtime", ""))*60 #Trakt returns in minutes, kodi expects in seconds
+        runtime = int(rec.get("runtime", ""))*60  # Trakt returns in minutes, kodi expects in seconds
         context_menu = []
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": tmdb_id})})'))
         context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": tmdb_id})})'))

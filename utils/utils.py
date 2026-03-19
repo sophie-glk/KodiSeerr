@@ -143,7 +143,10 @@ def list_episodes(tv_id, season_number, jellyseer_client, addon_handle):
     import xbmcplugin
     import xbmcgui
     xbmcplugin.setContent(addon_handle, 'episodes')
-    data = jellyseer_client.api_request(f"/tv/{tv_id}/season/{season_number}")
+    try:
+        data = jellyseer_client.api_request(f"/tv/{tv_id}/season/{season_number}")
+    except:
+        return
     if not data:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch episodes", xbmcgui.NOTIFICATION_ERROR)
         xbmcplugin.endOfDirectory(addon_handle)
@@ -169,7 +172,10 @@ def list_genres(media_type, jellyseer_client, addon_handle):
     import xbmcplugin
     import xbmcgui
     xbmcplugin.setContent(addon_handle, 'genres')
-    data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
+    try:
+        data = jellyseer_client.api_request(f"/genres/{media_type}", params={})
+    except:
+        return
     if data:
         for item in data:
             name = item.get('name')

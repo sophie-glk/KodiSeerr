@@ -41,8 +41,10 @@ def list_favorites(favorites_path, jellyseer_client, addon_handle):
             if len(parts) >= 2:
                 media_type = parts[0]
                 media_id = parts[1]
-                
-                data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
+                try:
+                    data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
+                except:
+                    return
                 if data:
                     title = data.get('title') or data.get('name', 'Unknown')
                     label = title

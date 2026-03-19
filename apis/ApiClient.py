@@ -66,37 +66,35 @@ class ApiClient:
             )
             response.raise_for_status()
         except requests.RequestException as e:
-            self.__error_notification("There was an ambiguous exception that occurred while handling this request.")
+            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
             raise e
         except requests.ConnectionError as e:
-            self.__error_notification("A Connection error occurred.")
+            self.__error_notification("A Connection error occurred.", e)
             raise e
         except requests.TooManyRedirects as e:
-            self.__error_notification("Too many redirects.")
+            self.__error_notification("Too many redirects.", e)
             raise e
         except requests.Timeout as e:
-            self.__error_notification("The request timed out.")
+            self.__error_notification("The request timed out.", e)
             raise e
-        if not self.__handle_status_code(response.status_code):
-            raise requests.HTTPError
+        except requests.HTTPError as e:
+            self.__error_notification("An API error occured.", e)
+            raise e
         if not response.content:
             return {}
         try:
             result = response.json()
         except requests.JSONDecodeError as e:
-            self.__error_notification("No valid json received")
+            self.__error_notification("No valid json received", e)
             raise e
         if use_cache:
             set_cached(cache_key, result)
         return result
     
     def __handle_status_code(self, status_code: int) -> bool:
-        if status_code == 200:
-            return True
-        self.__error_notification("An API error occured")
-        return False
-    
-    def __error_notification(self, message):
+        pass
+    def __error_notification(self, message, exception):
+            xbmc.log(f"[kodiseer] {self.name} : {str(exception)}", level=xbmc.LOGERROR)
             xbmcgui.Dialog().notification(
             heading=f"[kodiseer] {self.name}",
             message=message,

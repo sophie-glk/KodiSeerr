@@ -29,7 +29,10 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
         quality_profile = ask_quality_profile(jellyseer_client, media_type, is4k)
 
     if confirm_before_request:
-        title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
+        try:
+            title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
+        except:
+            pass
         title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
         msg = f"Request {title} {confirm_string}"
         if is4k:
@@ -54,8 +57,8 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     try:
         jellyseer_client.api_request("/request", method="POST", data=payload)
         xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
-    except Exception as e:
-        xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed: {str(e)}', xbmcgui.NOTIFICATION_ERROR, 4000)
+    except:
+        return
 
 
 def ask_quality_profile(jellyseer_client, media_type, is4k):
@@ -112,7 +115,11 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
          confirm_string = f"(All seasons)"
 
      elif selected_tv_request_type == f"Choose a season to request":
-         seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         try:
+            seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         except:
+             cancel = True
+             return cancel, confirm_string, return_type, seasons_to_request, episode_number
          season_list = []
          for seas in seasons:
             season_list.append(str(seas.get("seasonNumber", -1)))
@@ -125,7 +132,11 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
          confirm_string = f"Season {season_nr}"       
 
      elif selected_tv_request_type == "Choose an episode to request":
-         seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         try:
+            seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons", [])
+         except:
+              cancel = True
+              return cancel, confirm_string, return_type, seasons_to_request, episode_number
          season_list = []
          for seas in seasons:
              season_list.append(str(seas.get("seasonNumber", -1)))
@@ -136,7 +147,11 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
              return cancel, confirm_string, return_type, seasons_to_request, episode_number
          selected_season = int(season_list[selected])
          seasons_to_request = [selected_season]
-         episodes = jellyseer_client.api_request(f"/tv/{id}/season/{selected_season}").get("episodes", [])
+         try:
+            episodes = jellyseer_client.api_request(f"/tv/{id}/season/{selected_season}").get("episodes", [])
+         except:
+             cancel = True
+             return cancel, confirm_string, return_type, seasons_to_request, episode_number
          episode_list = []
          for ep in episodes:
              ep_nr = ep.get("episodeNumber", "")
@@ -158,8 +173,10 @@ def get_quality_profiles(jellyseer_client, media_type, is4k = False):
     backend_name = "sonarr"
     if media_type == "movie":
         backend_name = "radarr"
-
-    servers = jellyseer_client.api_request(f"/service/{backend_name}")
+    try:
+        servers = jellyseer_client.api_request(f"/service/{backend_name}")
+    except:
+        return
     default_server_id = -1
     if not servers:
         return []
@@ -171,7 +188,10 @@ def get_quality_profiles(jellyseer_client, media_type, is4k = False):
             break
     if default_server_id == -1:
         return []
-    profiles = jellyseer_client.api_request(f"/service/{backend_name}/{default_server_id}").get("profiles", [])
+    try:
+        profiles = jellyseer_client.api_request(f"/service/{backend_name}/{default_server_id}").get("profiles", [])
+    except:
+        return []
     return profiles
                                             
     

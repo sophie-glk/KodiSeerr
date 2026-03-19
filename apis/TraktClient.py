@@ -188,16 +188,16 @@ class TraktClient:
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
         except requests.RequestException as e:
-            self.__error_notification("There was an ambiguous exception that occurred while handling this request.")
+            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
             raise e
         except requests.ConnectionError as e:
-            self.__error_notification("A Connection error occurred.")
+            self.__error_notification("A Connection error occurred.", e)
             raise e
         except requests.TooManyRedirects as e:
-            self.__error_notification("Too many redirects.")
+            self.__error_notification("Too many redirects.", e)
             raise e
         except requests.Timeout as e:
-            self.__error_notification("The request timed out.")
+            self.__error_notification("The request timed out.", e)
             raise e
 
         headers = response.headers
@@ -209,7 +209,7 @@ class TraktClient:
         try:
             data = response.json()
         except requests.JSONDecodeError as e:
-            self.__error_notification("No valid json received")
+            self.__error_notification("No valid json received", e)
             raise e
 
         if use_cache:
@@ -252,7 +252,8 @@ class TraktClient:
 
         return False
     
-    def __error_notification(self, message):
+    def __error_notification(self, message, exception):
+            xbmc.log(f"[kodiseer] Trakt: {str(exception)}", level=xbmc.LOGERROR)
             xbmcgui.Dialog().notification(
             heading="Trakt Error",
             message=message,

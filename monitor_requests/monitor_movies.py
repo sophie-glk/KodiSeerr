@@ -43,16 +43,28 @@ def show_movie_request(id, request_id, mediaData, seer_status, item, radarr_clie
 
 
 def get_radarr_queue_data(radarr_client):
-    requestData_radarr = radarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
+    try:
+        requestData_radarr = radarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
+    except:
+        return []
     requestData_radarr_4k = []
     if radarr_client.has4k():
-        requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
+        try:
+            requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
+        except:
+            return []
     for item in requestData_radarr:
         movieId = item.get("movieId")
-        tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
+        try:
+            tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
+        except:
+            return []
         item.update({"tmdbId" : tmdbId})
     for item in requestData_radarr_4k:
         movieId = item.get("movieId")
-        tmdbId = radarr_client.api_request(f"/movie/{movieId}", request_4k=True).get("tmdbId")
+        try:
+            tmdbId = radarr_client.api_request(f"/movie/{movieId}", request_4k=True).get("tmdbId")
+        except:
+            return []
         item.update({"tmdbId" : tmdbId})
     return requestData_radarr + requestData_radarr_4k

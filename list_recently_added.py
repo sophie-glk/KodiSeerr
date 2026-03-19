@@ -6,9 +6,11 @@ import xbmcgui
 def list_recently_added(page, jellyseer_client, addon_handle):
     """Show recently added content to the server"""
     xbmcplugin.setContent(addon_handle, 'videos')
-    
-    recent_movies = jellyseer_client.api_request("/discover/movies", params={"sortBy": "mediaAdded", "page": page})
-    recent_tv = jellyseer_client.api_request("/discover/tv", params={"sortBy": "mediaAdded", "page": page})
+    try:
+        recent_movies = jellyseer_client.api_request("/discover/movies", params={"sortBy": "mediaAdded", "page": page})
+        recent_tv = jellyseer_client.api_request("/discover/tv", params={"sortBy": "mediaAdded", "page": page})
+    except: 
+        return
     
     all_items = []
     if recent_movies:

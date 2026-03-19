@@ -2,17 +2,21 @@
 import xbmcgui
 import xbmc
 import xbmcplugin
-def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, settings):      
-      series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
-      if not series_data:
-          xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
+def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, settings):
+      try:      
+        series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
+      except:
           return
       #if the show is missing we have to add it.
       series_id = series_data.get("id")
       if series_id == None:
             title = series_data.get("title")
             seerr_sonarr_settings = {}
-            for instance in jellyseerr_client.api_request("/settings/sonarr"):
+            try:
+                instances = jellyseerr_client.api_request("/settings/sonarr")
+            except:
+                return
+            for instance in instances:
                 if instance.get("is4k") == is4k and instance.get("isDefault"):
                     seerr_sonarr_settings = instance
                     break          
@@ -24,10 +28,16 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
             series_data["path"] = f"{series_data["RootFolderPath"]}/{title}"
             series_data["seasonFolder"] = seerr_sonarr_settings.get("enableSeasonFolders")
             #series_data["addOptions"] = {"searchForMissingEpisodes": True}
-            response = sonarr_client.api_request("/series", method="POST", data=series_data, request_4k = is4k)
+            try:
+                response = sonarr_client.api_request("/series", method="POST", data=series_data, request_4k = is4k)
+            except:
+                return
             series_id = response.get("id")
             xbmc.sleep(1000) # wait for sonarr to add the show
-      episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = is4k)
+      try:
+          episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = is4k)
+      except:
+          return
       if not episodes:
           xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
           return
@@ -47,8 +57,10 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
         if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
             xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
             return
-        
-      sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
+      try:
+          sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
+      except:
+          return
       xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
 
       requests_data = settings.get_preferences("episode_requests")

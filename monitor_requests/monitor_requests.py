@@ -7,8 +7,11 @@ from utils.utils import add_next_page_button
 
 def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_handle, settings, pagesize = 25):
     """Display user's requests with pagination"""   
-    data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": (page - 1) * pagesize, "sort": "added", "filter": "all"}, 
+    try:
+        data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": (page - 1) * pagesize, "sort": "added", "filter": "all"}, 
                                         use_cache = False)
+    except:
+        return
     requested_items = data.get('results', []) if data else []
 
     xbmcplugin.setContent(addon_handle, 'videos')
@@ -26,7 +29,10 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
         request_id = item.get("id", -1)
         seer_status = media.get('status')
         media_type = media.get('mediaType')
-        mediaData = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}", params={})
+        try:
+            mediaData = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}", params={})
+        except:
+            return
         if(media_type == "movie"):
           from monitor_requests.monitor_movies import show_movie_request
           show_movie_request(tmdb_id, request_id, mediaData, seer_status, item, radarr_client, addon_handle)
@@ -84,7 +90,10 @@ def cancel_request(request_id, jellyseer_client, media_type):
     if not xbmcgui.Dialog().yesno('KodiSeerr', "Do you want to cancel this request?"):
         return
     if request_id != -1:    
-        jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
+        try:
+            jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
+        except:
+            return
         xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
         xbmc.executebuiltin('Container.Refresh')
     else:

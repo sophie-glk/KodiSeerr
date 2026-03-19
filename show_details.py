@@ -1,7 +1,10 @@
 import xbmcgui
 def show_details(media_type, media_id, jellyseer_client):
     """Show detailed information about a media item"""
-    data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
+    try:
+        data = jellyseer_client.api_request(f"/{media_type}/{media_id}")
+    except:
+        return
     if not data:
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch details", xbmcgui.NOTIFICATION_ERROR)
         return

@@ -4,7 +4,10 @@ import xbmcplugin
 import json
 
 def play_local_file(tmdb_id, media_type, jellyseer_client, addon_handle, season = 1, episode = 1):
-    data = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}").get("externalIds")
+    try:
+        data = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}").get("externalIds")
+    except:
+        return
     imdb_id = data.get("imdbId")
     tvdb_id = data.get("tvdbId")
 
