@@ -1,6 +1,7 @@
 import requests
 import xbmcaddon
 import xbmc
+import xbmcgui
 import json
 from urllib.parse import urlencode, quote
 from cache import *
@@ -33,7 +34,8 @@ class ApiClient:
             use_cache = False
 
         token = self.api_token_4k if request_4k else self.api_token
-        url = f"{self.endpoint_url}{endpoint}"
+        base_url = self.endpoint_url_4k if request_4k else self.endpoint_url
+        url = f"{base_url}{endpoint}"
 
         data_json = ""
         if params:
@@ -64,9 +66,10 @@ class ApiClient:
                 data=data_json.encode("utf-8") if data_json else None,
                 headers=headers,
             )
+            xbmc.log(f"[kodiseer] REQUEST: {method} {url} | body: {data_json} | headers: {headers}", level=xbmc.LOGERROR)
             response.raise_for_status()
         except requests.RequestException as e:
-           # self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
+            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
             raise e
         except requests.ConnectionError as e:
             self.__error_notification("A Connection error occurred.", e)

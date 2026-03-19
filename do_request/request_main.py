@@ -6,7 +6,7 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     seasons_to_request = [season]
     confirm_string = ""
     cancel = False
-    if not skip_dialog:
+    if not skip_dialog and media_type != "movie":
         cancel, confirm_string, media_type, seasons_to_request, episode_number = show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr_client, addon_handle) 
     if cancel:
         return
@@ -83,12 +83,11 @@ def ask_4k(settings):
         return is4k
 
 def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr_client, addon_handle):
-    tv_request_types = []
-    cancel = False
-    confirm_string = ""
-    return_type =  "tv"
-    seasons_to_request = [season]
-    if media_type != "movie":
+     tv_request_types = []
+     cancel = False
+     confirm_string = ""
+     return_type =  "tv"
+     seasons_to_request = [season]
      if season > -1:
         tv_request_types.append(f"Request this season (Season {season})")    
      if sonarr_client is not None and episode_number > -1:
@@ -167,7 +166,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
          episode_number = int(episode_list[selected].getProperty("ep_nr"))
          return_type = "episode"
     
-    return cancel, confirm_string, return_type, seasons_to_request, episode_number
+     return cancel, confirm_string, return_type, seasons_to_request, episode_number
 
 def get_quality_profiles(jellyseer_client, media_type, is4k = False):
     """Get available quality profiles from server"""
