@@ -203,9 +203,9 @@ class TraktClient:
         headers = response.headers
         status_code = response.status_code
         
-        if not self.handle_status_code(status_code, headers):
+        if not self.__handle_status_code(status_code, headers):
             xbmc.sleep(1000)
-            return False
+            raise requests.HTTPError
         try:
             data = response.json()
         except requests.JSONDecodeError as e:
@@ -216,7 +216,7 @@ class TraktClient:
             set_cached(cache_key, {"data": data, "header": headers})
         return data, response.headers
 
-    def handle_status_code(self, status_code: int, headers) -> bool:
+    def __handle_status_code(self, status_code: int, headers) -> bool:
         if status_code in (200, 201, 204):
             return True
         
@@ -252,10 +252,10 @@ class TraktClient:
 
         return False
     
-    def __error_notification(message):
+    def __error_notification(self, message):
             xbmcgui.Dialog().notification(
             heading="Trakt Error",
-            message="There was an ambiguous exception that occurred while handling this request.",
+            message=message,
             icon=xbmcgui.NOTIFICATION_ERROR,
             time=5000,
         )
