@@ -115,7 +115,7 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
                     break
             if not found:
                 plot_text = "[COLOR red] (Missing) [/COLOR]"
-        url = get_url_by_status(status, id, id, "tv", season, ep_number)
+        url = get_url_by_status(status, id, id, "episode", season, ep_number)
         list_item = xbmcgui.ListItem(label = title)
         list_item.addContextMenuItems(get_context_menu_by_status(status, id, "-1", "episode", season, ep_number, episode_id))
         list_item.setInfo("video",  {'title': title, 'tvshowtitle': show_name, "episode": ep_number, "season": season,  'plot': plot_text, 'mediatype': 'episode'})

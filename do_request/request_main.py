@@ -103,7 +103,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
          return cancel, confirm_string, return_type, seasons_to_request, episode_number
      
      selected_tv_request_type = tv_request_types[selected_tv_request_nr]
-     if selected_tv_request_type == "Request this episode":
+     if selected_tv_request_type == f"Request this episode (S{season}E{episode_number})":
          return_type = "episode"
 
      elif selected_tv_request_type == f"Request this season ({season})":
