@@ -78,7 +78,7 @@ def ask_4k(settings):
             is4k = prefs['last_4k_choice']
         else:
             is4k = xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?')
-        if settings.remember_last_quality:
+        if settings.remember_last_quality():
             settings.save_preferences("last_quality", prefs)
         return is4k
 
@@ -106,7 +106,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
      if selected_tv_request_type == f"Request this episode (S{season}E{episode_number})":
          return_type = "episode"
 
-     elif selected_tv_request_type == f"Request this season ({season})":
+     elif selected_tv_request_type == f"Request this season (Season {season})":
          seasons_to_request = [season]
          confirm_string = f"Season {season}"
 
