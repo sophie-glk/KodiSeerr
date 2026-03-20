@@ -1,7 +1,6 @@
 from cache import get_cached, set_cached
 import xbmc
 import xbmcgui
-import time
 import requests
 import json
 import time
@@ -105,12 +104,13 @@ class TraktClient:
                 pass  # Still waiting
             elif response.status_code == 418:
                 dialog.close()
-                return True
+                return False
             elif response.status_code == 429:
                 interval += 1
 
         dialog.close()
         xbmcgui.Dialog().ok("Trakt Login", "Login timed out. Please try again.")
+        return False
 
 
 
@@ -149,7 +149,7 @@ class TraktClient:
     
     def paginated_request(self, method: str, endpoint:str, use_cache:bool = True):
         data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
-        total_number_of_pages = int(headers.get("X-Pagination-Limit"))
+        total_number_of_pages = int(headers.get("X-Pagination-Page-Count"))
         return data, total_number_of_pages
 
     def api_request(self, method: str, endpoint: str, use_cache: bool = True):
@@ -181,15 +181,12 @@ class TraktClient:
             
         if not self.access_token:
             xbmcgui.Dialog().notification("KodiSeerr", "Trakt not authorized", xbmcgui.NOTIFICATION_ERROR)
-            return {}
+            raise requests.HTTPError
         authed_headers = {**self.headers, "Authorization": f"Bearer {self.access_token}"}
         try:
             response = requests.request(
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
-        except requests.RequestException as e:
-            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
-            raise e
         except requests.ConnectionError as e:
             self.__error_notification("A Connection error occurred.", e)
             raise e
@@ -213,7 +210,7 @@ class TraktClient:
             raise e
 
         if use_cache:
-            set_cached(cache_key, {"data": data, "header": headers})
+            set_cached(cache_key, {"data": data, "header": dict(headers)})
         return data, response.headers
 
     def __handle_status_code(self, status_code: int, headers) -> bool:
@@ -252,8 +249,9 @@ class TraktClient:
 
         return False
     
-    def __error_notification(self, message, exception):
-            xbmc.log(f"[kodiseer] Trakt: {str(exception)}", level=xbmc.LOGERROR)
+    def __error_notification(self, message, exception = None):
+            if exception is not None:
+                xbmc.log(f"[kodiseer] Trakt: {str(exception)}", level=xbmc.LOGERROR)
             xbmcgui.Dialog().notification(
             heading="Trakt Error",
             message=message,

@@ -12,13 +12,13 @@ def show_movie_request(id, request_id, mediaData, seer_status, item, radarr_clie
         arr_status = ""
         timeleft = ""
         if seer_status in [2,3]:
-         for item in requestData_radarr:
-          if item.get("tmdbId") == id:
+         for rd in requestData_radarr:
+          if rd.get("tmdbId") == id:
              try:
-                 size = float(item.get("size"))/(1024**3)
-                 sizeleft = float(item.get("sizeleft"))/(1024**3)
-                 arr_status = item.get("status")
-                 timeleft = item.get("timeleft")
+                 size = float(rd.get("size"))/(1024**3)
+                 sizeleft = float(rd.get("sizeleft"))/(1024**3)
+                 arr_status = rd.get("status")
+                 timeleft = rd.get("timeleft")
              except:
                  continue
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
@@ -52,13 +52,13 @@ def get_radarr_queue_data(radarr_client):
         try:
             requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
         except:
-            return []
+            pass
     for item in requestData_radarr:
         movieId = item.get("movieId")
         try:
             tmdbId = radarr_client.api_request(f"/movie/{movieId}").get("tmdbId")
         except:
-            return []
+            continue
         item.update({"tmdbId" : tmdbId})
     for item in requestData_radarr_4k:
         movieId = item.get("movieId")

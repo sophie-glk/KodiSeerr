@@ -1,9 +1,7 @@
 import hashlib
-
 import xbmcaddon
 import xbmcvfs
 import xbmcgui
-import xbmcaddon
 import time
 import json
 
@@ -14,7 +12,7 @@ cache_id = "c83c803f-b874-4f17-8b1b-079b9694943e"
 disable_caching = False
 cache_duration = 60
 
-def disable_caching():
+def set_caching_disabled():
    global disable_caching
    disable_caching = False
 
@@ -45,7 +43,7 @@ def get_cached(key: str):
         return None
     
     hashed_key = hashlib.sha256(str(key).encode("utf-8")).hexdigest()
-    if key in cache:
+    if hashed_key in cache:
         entry = cache[hashed_key]
         if time.time() - entry.get('timestamp', 0) < entry.get("duration", 60):
             return entry.get('data')

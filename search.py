@@ -14,6 +14,7 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
         try:
             data = jellyseer_client.api_request('/search', params={'query': search_string, "page": page})
         except:
+            xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
             return
         results = data.get('results', []) if data else []
         total_pages = data.get("totalPages", 1)

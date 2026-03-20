@@ -6,7 +6,7 @@ def delete_file(tmdb_id, media_type, jellyseer_client, sonarr_client, settings, 
     
     if media_type == "episode":
         try:
-            episode_file_id = sonarr_client.api_request(f"/episode/{episode_id}").get("episodeFileId")
+            episode_file_id = sonarr_client.api_request(f"/episode/{episode_id}", is_4k = is_4k).get("episodeFileId")
             sonarr_client.api_request(f"/episodefile/{episode_file_id}", method="DELETE")
         except:
             return
@@ -14,12 +14,18 @@ def delete_file(tmdb_id, media_type, jellyseer_client, sonarr_client, settings, 
         episode_requests = requests_data.get("requests", {})   
         to_remove = -1
         for id, data in episode_requests.items():
+          found = False
           for seas, episode_list in data.get("seasons").items():
-              if str(seas) == str(season) and str(episode_nr) in str(episode_list):
-                  to_remove = id
+              if str(seas) == str(season) and episode_nr in episode_list:
+                  episode_list.remove(episode_nr)
+                  if not episode_list:
+                      data["seasons"].pop(seas)
+                  if not data["seasons"]:
+                     episode_requests.pop(id)
+                  found = True
                   break   
-        if to_remove != -1:
-            episode_requests.pop(to_remove)
+          if found:
+              break
         settings.save_preferences("episode_requests", requests_data)    
         #xbmc.log(f"[kodiseerr] {response}", xbmc.LOGERROR)
         xbmc.executebuiltin('Container.Refresh')        

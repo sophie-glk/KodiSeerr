@@ -9,7 +9,8 @@ def browse_menu(media_type, id, jellyseer_client, sonarr_client, settings, addon
         do_request(media_type, id, settings, jellyseer_client, addon_handle , sonarr_client, season, episode)
         return
     try:
-        name = jellyseer_client.api_request(f"/tv/{id}").get("name")
+        data = jellyseer_client.api_request(f"/tv/{id}")
+        name = data.get("name")
     except:
         return
     selected = xbmcgui.Dialog().select(name, ["Request", "Browse"])
@@ -19,12 +20,13 @@ def browse_menu(media_type, id, jellyseer_client, sonarr_client, settings, addon
         do_request(media_type, id, settings, jellyseer_client, addon_handle , sonarr_client, season, episode)
         handle_empty_directory(addon_handle)
         return
-    browse_handle_season(id, jellyseer_client, addon_handle)
+    browse_handle_season(id, data, addon_handle)
 
-def browse_handle_season(id, jellyseer_client, addon_handle):
+def browse_handle_season(id, data, addon_handle):
     try:
-        seasons = jellyseer_client.api_request(f"/tv/{id}").get("seasons")
+        seasons =data.get("seasons")
     except:
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
     xbmcplugin.setContent(addon_handle, 'seasons')
     for season in seasons:
@@ -38,7 +40,7 @@ def browse_handle_episodes(id, season, jellyseer_client, addon_handle):
         episodes = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
     except:
         return
-    xbmcplugin.setContent(addon_handle, 'seasons')
+    xbmcplugin.setContent(addon_handle, 'episodes')
     for ep in episodes:
         list_item = xbmcgui.ListItem(label=ep.get("name"))
         list_item.setInfo("video",  {'title': ep.get("name"), "episode": ep.get("episodeNumber"), "season": season,  'plot': ep.get("overview"), 'mediatype': 'episode'})

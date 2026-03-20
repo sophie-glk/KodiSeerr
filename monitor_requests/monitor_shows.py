@@ -21,10 +21,11 @@ def show_series_request(id, request_id, mediaData, seer_status, item, sonarr_cli
         arr_status = ""
         timeleft = ""
         if seer_status in [2,3]:
-         for item in  requestData_sonarr_series:
-          if item.get("tmdbId") == id:
+         for rd in  requestData_sonarr_series:
+          if rd.get("tmdbId") == id:
              try:
-                 timeleft = item.get("timeleft")
+                 timeleft = rd.get("timeleft")
+                 arr_status = rd.get("status")
              except:
                  continue
         label_text = mediaData.get('title') or mediaData.get('name') or "Untitled"
@@ -51,6 +52,7 @@ def show_requested_seasons(id, request_id, jellyseer_client, addon_handle, sonar
     try:
         seer_info = jellyseer_client.api_request(f"/tv/{id}")
     except:
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
     media_info = seer_info.get("mediaInfo", [])
     seasons = media_info.get("seasons", []) if media_info else []      
@@ -72,20 +74,23 @@ def show_requested_seasons(id, request_id, jellyseer_client, addon_handle, sonar
     xbmcplugin.endOfDirectory(addon_handle,  cacheToDisc=False)
 
 
-def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_client, addon_handle, filter = []):
+def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_client, addon_handle, filter = None):
+    if filter is None:
+        filter = []
     episodes = get_sonarr_episodes(id, season, sonarr_client)
     try:
         seer_episode_data = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
         show_name = jellyseer_client.api_request(f"/tv/{id}", method="GET").get("name", "")
         sonarr_requests = sonarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
     except:
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
     if sonarr_client.has4k():
         episodes += get_sonarr_episodes(id, season, sonarr_client, use_4k=True)
         try:
             sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
         except:
-            return
+            pass
     for ep in episodes:
         episode_id = ep.get("id")
         title = ep.get("title")
@@ -104,8 +109,8 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
                 if int(request.get("episodeId")) == int(episode_id):
                     status = 3
                     found = True
-                    status = request.get("status")
-                    plot_text += f"[COLOR cyan]({status})[/COLOR]"
+                    arr_status = request.get("status")
+                    plot_text += f"[COLOR cyan]({arr_status})[/COLOR]"
                     size = float(request.get("size"))/(1024**3)
                     sizeleft = float(request.get("sizeleft"))/(1024**3)
                     timeleft = request.get("timeleft")
@@ -134,7 +139,7 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
     try:
         sonarr_series = sonarr_client.api_request(f"/series", request_4k = use_4k, use_cache=False)
     except:
-        return
+        return []
     series_id = ""
     for series in sonarr_series:
         if int(series.get("tmdbId")) == int(id):
@@ -143,7 +148,7 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
     try:
         episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = use_4k, use_cache=False)
     except:
-        return
+        return []
     episode_data = []
     for ep in episodes:
         if int(ep.get("seasonNumber")) != int(season_num):
@@ -153,16 +158,17 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
 
 
 def get_sonarr_queue_data_series(sonarr_client):
+    requestData_sonarr = []
     try:
         requestData_sonarr = sonarr_client.api_request(f"/queue", params={}, request_4k=False, use_cache = False).get("records")
     except:
-        return
+        pass
     requestData_sonarr_4k = []
     if sonarr_client.has4k():
         try:
             requestData_sonarr_4k = sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache = False).get("records")
         except:
-            return
+            pass
     foundSeriesIds = []
     requestData_sonarr_series = []
     for item in requestData_sonarr:
@@ -172,7 +178,7 @@ def get_sonarr_queue_data_series(sonarr_client):
          try:
             tmdbId = sonarr_client.api_request(f"/series/{seriesId}").get("tmdbId")
          except:
-             return
+             continue
          item.update({"tmdbId" : tmdbId})
          requestData_sonarr_series.append(item)
     for item in requestData_sonarr_4k:
@@ -182,7 +188,7 @@ def get_sonarr_queue_data_series(sonarr_client):
          try:
             tmdbId = sonarr_client.api_request(f"/series/{seriesId}", request_4k=True).get("tmdbId")
          except:
-             return
+             continue
          item.update({"tmdbId" : tmdbId})
          requestData_sonarr_series.append(item)
     return requestData_sonarr_series

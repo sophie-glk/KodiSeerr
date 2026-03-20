@@ -47,7 +47,7 @@ class ApiClient:
 
         cache_key = None
         if use_cache:
-            cache_key = str(url + endpoint + method + data_json + token)
+            cache_key = str(url + method + data_json + token)
             cached = get_cached(cache_key)
             if cached is not None:
                 return cached
@@ -68,9 +68,6 @@ class ApiClient:
             )
             xbmc.log(f"[kodiseer] REQUEST: {method} {url} | body: {data_json} | headers: {headers}", level=xbmc.LOGERROR)
             response.raise_for_status()
-        except requests.RequestException as e:
-            self.__error_notification("There was an ambiguous exception that occurred while handling this request.", e)
-            raise e
         except requests.ConnectionError as e:
             self.__error_notification("A Connection error occurred.", e)
             raise e

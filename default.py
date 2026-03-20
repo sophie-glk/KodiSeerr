@@ -88,9 +88,6 @@ elif mode == "search":
 elif mode == "browse_menu":
     from browse import browse_menu
     browse_menu(args.get("type"), args.get("id"), jellyseer_client, sonarr_client, settings, addon_handle, args.get("season", -1), args.get("episode", -1))
-elif mode == "browse_handle_season":
-    from browse import browse_handle_season
-    browse_handle_season(args.get("id"), jellyseer_client, addon_handle)
 elif mode == "browse_handle_episodes":
     from browse import browse_handle_episodes
     browse_handle_episodes(args.get("id"), args.get("season"), jellyseer_client, addon_handle)  

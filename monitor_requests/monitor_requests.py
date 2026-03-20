@@ -11,6 +11,7 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
         data = jellyseer_client.api_request("/request", params={"take": pagesize, "skip": (page - 1) * pagesize, "sort": "added", "filter": "all"}, 
                                         use_cache = False)
     except:
+        xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
     requested_items = data.get('results', []) if data else []
 
@@ -32,7 +33,7 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
         try:
             mediaData = jellyseer_client.api_request(f"/{media_type}/{tmdb_id}", params={})
         except:
-            return
+            continue
         if(media_type == "movie"):
           from monitor_requests.monitor_movies import show_movie_request
           show_movie_request(tmdb_id, request_id, mediaData, seer_status, item, radarr_client, addon_handle)
@@ -48,18 +49,18 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
 
 
 def get_url_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_number=-1):
-        is_directory = False
+        dir = False
         tmdb_type = media_type
         if media_type == "episode":
             tmdb_type = "tv"
         if media_type != "movie":
-            is_directory = True
+            dir = True
         if status in [2, 3]:
-            url = build_url({"mode": "cancel_request", "request_id": request_id, "handle_empty_directory": is_directory, "type": media_type})
+            url = build_url({"mode": "cancel_request", "request_id": request_id, "handle_empty_directory": dir, "type": media_type})
         elif status == 5:
             url = build_url({"mode": "play_local_file", "id": tmdb_id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
-            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "handle_empty_directory": is_directory})
+            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "handle_empty_directory": dir})
         return url
 
 def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_nr=-1, episode_id=-1):
