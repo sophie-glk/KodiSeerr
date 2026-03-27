@@ -41,6 +41,7 @@ class TraktClient:
         return response.json()
 
     def refresh_access_token(self) -> None:
+      try:
         response = requests.post(
             f"{self.BASE_URL}/oauth/token",
             headers=self.headers,
@@ -52,10 +53,22 @@ class TraktClient:
             },
         )
         response.raise_for_status()
-        data = response.json()
-        self.access_token = data["access_token"]
-        self.refresh_token = data["refresh_token"]
-        self.save_tokens()
+      except requests.ConnectionError as e:
+            self.__error_notification("A Connection error occurred.", e)
+            raise e
+      except requests.TooManyRedirects as e:
+            self.__error_notification("Too many redirects.", e)
+            raise e
+      except requests.Timeout as e:
+            self.__error_notification("The request timed out.", e)
+            raise e
+      except requests.HTTPError as e:
+             self.__error_notification("Could not renew access token, please reauthorize Trakt.", e)
+             raise e
+      data = response.json()
+      self.access_token = data["access_token"]
+      self.refresh_token = data["refresh_token"]
+      self.save_tokens()
 
     def login(self) -> bool:
         device = self.request_device_code()
@@ -157,6 +170,8 @@ class TraktClient:
         return data
     
     def __api_request(self, method: str, endpoint: str, use_cache: bool = True):
+      attempt = 0
+      while attempt < 2:
         #check if we have run into a rate limit:
         if time.time() - self.rate_limit.get("start", 0) <= self.rate_limit.get("length", -1):
             xbmcgui.Dialog().notification(
@@ -200,6 +215,15 @@ class TraktClient:
         headers = response.headers
         status_code = response.status_code
         
+        ##not authorized, try to renew the access token
+        if status_code == 401 and attempt == 0:
+            attempt = attempt+1
+            try:
+                self.refresh_access_token()
+            except Exception as e:
+                raise e
+            continue
+
         if not self.__handle_status_code(status_code, headers):
             xbmc.sleep(1000)
             raise requests.HTTPError
