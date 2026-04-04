@@ -155,7 +155,7 @@ def show_dialog(id, media_type, season, episode_number, jellyseer_client, sonarr
          episode_list = []
          for ep in episodes:
              ep_nr = ep.get("episodeNumber", "")
-             item = xbmcgui.ListItem(label=f"Episode {ep_nr}: {ep.get("name")}")
+             item = xbmcgui.ListItem(label=f"Episode {ep_nr}: {ep.get('name')}")
              item.setProperty('ep_nr', str(ep_nr))
              episode_list.append(item)
          selected = xbmcgui.Dialog().select("Episode", episode_list)

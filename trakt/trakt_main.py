@@ -4,9 +4,10 @@ from utils.url_handling import build_url
 import xbmcgui
 import xbmcplugin
 
-def trakt(trakt_mode, addon_handle, addon_data_path, page=1):
+def trakt_router(args, addon_handle, addon_data_path, page=1):
+    trakt_mode = args.get("trakt_mode" ,"")
     if trakt_mode != "":
-        handle_trakt(trakt_mode, addon_handle, addon_data_path, page)
+        handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page)
         return
     trakt_main_menu(addon_handle)
 
@@ -28,6 +29,10 @@ def trakt_main_menu(addon_handle):
         ('anticipated_shows',   'Most Anticipated Shows',  'DefaultTVShows.png',              True),
         ('anticipated_movies',  'Most Anticipated Movies', 'DefaultMovies.png',               True),
         ('boxoffice_movies',    'Box Office Movies',       'DefaultMovies.png',               True),
+        ('show_user_lists',    'My Lists',       'DefaultMovies.png',               True),
+        ('show_trending_lists',    'Trending Lists',       'DefaultMovies.png',               True),
+        ('show_popular_lists',    'Popular Lists',       'DefaultMovies.png',               True),
+
     ]
     for item in items:
         if item[0] is None:
@@ -39,7 +44,7 @@ def trakt_main_menu(addon_handle):
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, is_folder)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def handle_trakt(trakt_mode, addon_handle, addon_data_path, page=1):
+def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1):
     client_id = "033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9"
     client_secret = "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0"
     trakt_client = TraktClient(client_id, client_secret, addon_data_path)
@@ -73,6 +78,18 @@ def handle_trakt(trakt_mode, addon_handle, addon_data_path, page=1):
         show_anticipated_movies(trakt_client, addon_handle, page)
     elif trakt_mode == "boxoffice_movies":
         show_boxoffice_movies(trakt_client, addon_handle)
+    elif trakt_mode == "show_user_lists":
+        from trakt.lists import show_user_lists
+        show_user_lists(trakt_client, addon_handle, page=page)
+    elif trakt_mode == "show_popular_lists":
+        from trakt.lists import show_popular_lists
+        show_popular_lists(trakt_client, addon_handle, page=page)
+    elif trakt_mode == "show_trending_lists":
+        from trakt.lists import show_trending_lists
+        show_trending_lists(trakt_client, addon_handle , page=page)
+    elif trakt_mode == "show_list_items":
+        from trakt.lists import show_list_items
+        show_list_items(args.get("user_slug"), args.get("list_id"), trakt_client, addon_handle, page=page)
 
 # ── Recommended (no pagination per API) ──────────────────────────────────────
 def show_recommended_shows(trakt_client, addon_handle):
@@ -271,14 +288,14 @@ def show_boxoffice_movies(trakt_client, addon_handle):
 # ── Lists ───────────────────────────────────
 # TODO
 
-def display_response(response, media_type, addon_handle, use_tmdb_for_art=False):
+def display_response(response, media_type, addon_handle, season = -1, episode = -1, use_tmdb_for_art=False):
     if response is None:
         return
     isFolder = True
     if media_type == "movie":
         isFolder = False
     for rec in response:
-        tmdb_id = rec.get("ids", {}).get("tmdb")
+        tmdb_id = rec.get("ids", {}).get("tmdb", "")
         title = rec.get("title", "")
         year = rec.get("year", "")
         overview = rec.get("overview", "")
@@ -291,7 +308,7 @@ def display_response(response, media_type, addon_handle, use_tmdb_for_art=False)
         context_menu = []
         context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": tmdb_id})})'))
         context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": tmdb_id})})'))
-        url = build_url({'mode': 'browse_menu', 'type': media_type, 'id': tmdb_id})
+        url = build_url({'mode': 'browse_menu', 'type': media_type, 'id': tmdb_id, 'season': season, 'episode': episode})
         list_item = xbmcgui.ListItem(label=label)
         list_item.addContextMenuItems(context_menu)
         info = {'title': title, 'plot': overview, 'year': year, 'mediatype': media_type, 'genre': genres, 'rating': rating, 'votes': votes, 'duration': runtime}

@@ -1,0 +1,94 @@
+from trakt.trakt_main import display_response
+from utils.url_handling import build_url
+from utils.utils import add_next_page_button, set_info_tag
+import xbmcplugin
+import xbmcgui
+
+
+def show_user_lists(trakt_client, addon_handle, page=1, number_of_items=25): 
+    try:
+        user_ids = trakt_client.api_request("GET", "/users/settings").get("user", {}).get("ids", {})
+    except Exception:
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    user_slug = user_ids.get("slug")
+    try:
+        user_lists, total_pages =  trakt_client.paginated_request("GET", f"/users/{user_slug}/lists?page={page}&limit={number_of_items}")
+    except Exception:
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    show_lists(user_lists, addon_handle)
+    add_next_page_button({"mode": "trakt", "trakt_mode": "show_user_lists"}, int(page), int(total_pages), addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def show_popular_lists(trakt_client, addon_handle, page=1, number_of_items=25):
+    try:
+        popular_lists, total_pages = trakt_client.paginated_request("GET", f"/lists/popular?page={page}&limit={number_of_items}")
+    except Exception:
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    show_lists([l.get("list") for l in popular_lists], addon_handle)
+    add_next_page_button({"mode": "trakt", "trakt_mode": "show_trending_lists"}, int(page), int(total_pages), addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def show_trending_lists(trakt_client, addon_handle, page = 1, number_of_items=25):
+    try:
+        trending_lists, total_pages = trakt_client.paginated_request("GET", f"/lists/trending?page={page}&limit={number_of_items}")
+
+    except Exception:
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    show_lists([l.get("list") for l in trending_lists], addon_handle)
+    add_next_page_button({"mode": "trakt", "trakt_mode": "show_trending_lists"}, int(page), int(total_pages), addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle)
+
+def show_lists(trakt_lists, addon_handle):
+    for li in trakt_lists:
+        name = li.get("name")
+        description = li.get("description")
+        likes = li.get("likes")
+        list_id = li.get("ids").get("trakt")
+        user_slug = li.get("user").get("ids").get("slug")
+        list_item = xbmcgui.ListItem(label=name)
+        list_item.setLabel(name)
+        info = {'title': name,  'mediatype': 'movie',  'plot': description,  'votes': likes}
+        set_info_tag(list_item, info)
+        xbmcplugin.addDirectoryItem(addon_handle, build_url({"mode": "trakt", "trakt_mode": "show_list_items", "user_slug": user_slug, "list_id": list_id}), list_item, True)
+    
+
+def show_list_items(user_slug, list_id, trakt_client, addon_handle, page=1, number_of_items=25):
+    try:
+        list_items, total_pages = trakt_client.paginated_request("GET", f"/users/{user_slug}/lists/{list_id}/items?page={page}&limit={number_of_items}")
+    except Exception:
+        xbmcplugin.endOfDirectory(addon_handle)
+        return
+    for item in list_items:
+         media_type = item.get("type")
+         display_type = "tv"
+         if media_type == "movie":
+            display_type = "movie"
+            media_id = item.get(media_type).get("ids").get("slug")
+            api_endpoint = f"/movies/{media_id}"
+         elif media_type == "show":
+             media_id = item.get(media_type).get("ids").get("slug")
+             api_endpoint =  f"/shows/{media_id}"
+         elif media_type == "season":
+             season_nr = item.get(media_type).get("number")
+             show_id = item.get("show").get("ids").get("slug")
+             api_endpoint = f"/shows/{show_id}/seasons/{season_nr}/info"
+         elif media_type == "episode":
+             episode_data = item.get(media_type)
+             episode_nr = episode_data.get("number")
+             season_nr = episode_data.get("season")
+             show_id = item.get("show").get("ids").get("slug")
+             api_endpoint = f"/shows/{show_id}/seasons/{season_nr}/episodes/{episode_nr}"
+         #TODO 
+         #Display notes
+         try:     
+            media_info = trakt_client.api_request("GET", f"{api_endpoint}?extended=full,images")
+         except Exception:
+          xbmcplugin.endOfDirectory(addon_handle)
+          return
+         display_response([media_info], display_type, addon_handle)
+    add_next_page_button({"mode": "trakt", "trakt_mode": "show_list_items", "user_slug": user_slug, "list_id": list_id}, int(page), int(total_pages), addon_handle)
+    xbmcplugin.endOfDirectory(addon_handle)    

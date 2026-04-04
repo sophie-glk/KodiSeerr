@@ -123,8 +123,8 @@ elif mode == "refresh":
     import xbmc
     xbmc.executebuiltin('Container.Refresh')
 elif mode == "trakt":
-    from trakt import trakt
-    trakt(args.get("trakt_mode" ,""), addon_handle, addon_data_path, page)
+    from trakt.trakt_main import trakt_router
+    trakt_router(args, addon_handle, addon_data_path, page)
 
 clean_cache()
 save_cache()
