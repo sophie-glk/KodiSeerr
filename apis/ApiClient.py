@@ -67,7 +67,6 @@ class ApiClient:
                 headers=headers,
             )
             xbmc.log(f"[kodiseer] REQUEST: {method} {url} | body: {data_json} | headers: {headers}", level=xbmc.LOGERROR)
-            response.raise_for_status()
         except requests.ConnectionError as e:
             self.__error_notification("A Connection error occurred.", e)
             raise e
@@ -75,11 +74,11 @@ class ApiClient:
             self.__error_notification("Too many redirects.", e)
             raise e
         except requests.Timeout as e:
-            self.__error_notification("The request timed out.", e)
+            self._error_notification("The request timed out.", e)
             raise e
-        except requests.HTTPError as e:
-            self.__error_notification("An API error occured.", e)
-            raise e
+        if not self._handle_status_code(response.status_code):
+            raise requests.HTTPError
+        
         if not response.content:
             return {}
         try:
@@ -91,9 +90,13 @@ class ApiClient:
             set_cached(cache_key, result)
         return result
     
-    def __handle_status_code(self, status_code: int) -> bool:
-        pass
-    def __error_notification(self, message, exception):
+    def _handle_status_code(self, status_code: int) -> bool:
+        if status_code in [200, 201, 202, 204]:
+            return True
+        self._error_notification("An API error occured.", f"Error code: {status_code}")
+        return False
+    
+    def _error_notification(self, message, exception =  requests.HTTPError):
             xbmc.log(f"[kodiseer] {self.name} : {str(exception)}", level=xbmc.LOGERROR)
             xbmcgui.Dialog().notification(
             heading=f"[kodiseer] {self.name}",
