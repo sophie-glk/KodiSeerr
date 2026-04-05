@@ -13,7 +13,7 @@ def main_menu(addon_handle):
         ('statistics', 'Statistics', 'DefaultAddonInfoProvider.png', True),
         (None, None, None, False),
         ('search', 'Search', 'DefaultAddonsSearch.png', True),
-        ('test_connection', 'Test Connection', 'DefaultAddonService.png', False),
+        ('test_connection', 'Test Connection', 'DefaultAddonService.png', True),
         ('trakt', 'Trakt', 'DefaultAddonService.png', True),
     ]
     

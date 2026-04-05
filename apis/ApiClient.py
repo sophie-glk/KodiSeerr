@@ -8,6 +8,7 @@ from cache import *
 
 class ApiClient:
     def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None):
+        self._disable_error_messages = False
         self.endpoint_url = endpoint_url
         self.api_token = api_token
         self.session = None
@@ -27,6 +28,12 @@ class ApiClient:
 
     def has4k(self):
         return self.__has4k
+    
+    def disable_error_messages(self):
+        self._disable_error_messages = True
+    
+    def enable_error_messages(self):
+        self._disable_error_messages = False
 
     def api_request(self, endpoint, method="GET", data=None, params=None, request_4k=False, use_cache=True):
         """Sends an authenticated API request to the server."""
@@ -99,7 +106,8 @@ class ApiClient:
     def _error_notification(self, message, exception =  requests.HTTPError):
             xbmc.log(f"[kodiseer] {self.name} : {str(exception)}", level=xbmc.LOGERROR)
             xbmc.log(f"[kodiseer] {self.name} : {message}", level=xbmc.LOGERROR)
-
+            if self._disable_error_messages:
+                return
             xbmcgui.Dialog().notification(
             heading=f"[kodiseer] {self.name}",
             message=message,

@@ -43,7 +43,7 @@ if not mode:
     main_menu(addon_handle)
 elif mode == "test_connection":
     from test_connection import test_connection
-    test_connection()
+    test_connection(jellyseer_client, sonarr_client, radarr_client, settings, addon_handle)
 elif mode == "clear_cache":
     from cache import clear_cache
     clear_cache()

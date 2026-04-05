@@ -51,7 +51,6 @@
     </category>
     <category label="Advanced">
         <setting id="debug_logging" type="bool" label="Enable debug logging" default="false" />
-        <setting id="test_connection" type="action" label="Test Server Connection" action="RunScript(special://home/addons/plugin.video.kodiseerr/default.py,test_connection)" />
         <setting id="export_settings" type="action" label="Export Settings" action="RunScript(special://home/addons/plugin.video.kodiseerr/backup_restore.py,export)" />
         <setting id="import_settings" type="action" label="Import Settings" action="RunScript(special://home/addons/plugin.video.kodiseerr/backup_restore.py,import)" />
         <setting id="clear_cache" type="action" label="Clear Cache" action="RunScript(special://home/addons/plugin.video.kodiseerr/default.py,clear_cache)" />
