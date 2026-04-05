@@ -32,6 +32,7 @@ def trakt_main_menu(addon_handle):
         ('show_user_lists',    'My Lists',       'DefaultMovies.png',               True),
         ('show_trending_lists',    'Trending Lists',       'DefaultMovies.png',               True),
         ('show_popular_lists',    'Popular Lists',       'DefaultMovies.png',               True),
+         ('show_watch_list',    'My Watchlist',       'DefaultMovies.png',               True),
 
     ]
     for item in items:
@@ -90,6 +91,9 @@ def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1):
     elif trakt_mode == "show_list_items":
         from trakt.lists import show_list_items
         show_list_items(args.get("user_slug"), args.get("list_id"), trakt_client, addon_handle, page=page)
+    elif trakt_mode == "show_watch_list":
+        from trakt.lists import show_watchlist
+        show_watchlist(trakt_client, addon_handle, page=page)
 
 # ── Recommended (no pagination per API) ──────────────────────────────────────
 def show_recommended_shows(trakt_client, addon_handle):
