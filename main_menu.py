@@ -10,7 +10,7 @@ def main_menu(addon_handle):
         (None, None, None, False),
         ('favorites', 'My Favorites', 'DefaultFavourites.png', True),
         ('requests', 'Request Progress', 'DefaultInProgressShows.png', True),
-        ('statistics', 'Statistics', 'DefaultAddonInfoProvider.png', False),
+        ('statistics', 'Statistics', 'DefaultAddonInfoProvider.png', True),
         (None, None, None, False),
         ('search', 'Search', 'DefaultAddonsSearch.png', True),
         ('test_connection', 'Test Connection', 'DefaultAddonService.png', False),

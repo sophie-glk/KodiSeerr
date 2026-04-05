@@ -49,7 +49,7 @@ elif mode == "clear_cache":
     clear_cache()
 elif mode == "statistics":
     from statistics import show_statistics
-    show_statistics(jellyseer_client)
+    show_statistics(jellyseer_client, addon_handle)
 elif mode == "favorites":
     from favorites import list_favorites
     list_favorites(favorites_path, jellyseer_client, addon_handle)

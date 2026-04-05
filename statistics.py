@@ -1,7 +1,9 @@
+from utils.utils import handle_empty_directory
 import xbmcgui
 import xbmc
-def show_statistics(jellyseer_client):
+def show_statistics(jellyseer_client, addon_handle):
     """Show user statistics"""
+    handle_empty_directory(addon_handle)
     try:
         requests_data = jellyseer_client.api_request('/request', params={'take': 1000})
         if not requests_data:
@@ -35,4 +37,3 @@ def show_statistics(jellyseer_client):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] Statistics error: {e}", xbmc.LOGERROR)
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
-    xbmc.executebuiltin("Action(Back)")
