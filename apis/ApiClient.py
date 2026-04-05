@@ -98,6 +98,8 @@ class ApiClient:
     
     def _error_notification(self, message, exception =  requests.HTTPError):
             xbmc.log(f"[kodiseer] {self.name} : {str(exception)}", level=xbmc.LOGERROR)
+            xbmc.log(f"[kodiseer] {self.name} : {message}", level=xbmc.LOGERROR)
+
             xbmcgui.Dialog().notification(
             heading=f"[kodiseer] {self.name}",
             message=message,
