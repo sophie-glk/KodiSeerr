@@ -60,22 +60,22 @@ class TraktClient:
       except requests.ConnectionError as e:
             if current_try < max_tries:
                 continue
-            self.__error_notification("A Connection error occurred.", e)
+            self._error_notification("A Connection error occurred.", e)
             raise e
       except requests.TooManyRedirects as e:
             if current_try < max_tries:
                 continue
-            self.__error_notification("Too many redirects.", e)
+            self._error_notification("Too many redirects.", e)
             raise e
       except requests.Timeout as e:
             if current_try < max_tries:
                 continue
-            self.__error_notification("The request timed out.", e)
+            self._error_notification("The request timed out.", e)
             raise e
       except requests.HTTPError as e:
              if current_try < max_tries:
                 continue
-             self.__error_notification("Could not renew access token, please reauthorize Trakt.", e)
+             self._error_notification("Could not renew access token, please reauthorize Trakt.", e)
              raise e
       data = response.json()
       self.access_token = data["access_token"]
@@ -174,12 +174,21 @@ class TraktClient:
             return False
     
     def paginated_request(self, method: str, endpoint:str, use_cache:bool = True):
-        data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
-        total_number_of_pages = int(headers.get("X-Pagination-Page-Count"))
+        try:
+            data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
+        except Exception as e:
+            raise e
+        try:
+            total_number_of_pages = int(headers.get("x-pagination-page-count"))
+        except Exception as e:
+            self._error_notification("Could not get the number of pages", e)
         return data, total_number_of_pages
 
     def api_request(self, method: str, endpoint: str, use_cache: bool = True):
-        data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
+        try:
+            data, headers = self.__api_request(method, endpoint, use_cache=use_cache)
+        except Exception as e:
+            raise e
         return data
     
     def __api_request(self, method: str, endpoint: str, use_cache: bool = True):
@@ -187,12 +196,7 @@ class TraktClient:
       while attempt < 2:
         #check if we have run into a rate limit:
         if time.time() - self.rate_limit.get("start", 0) <= self.rate_limit.get("length", -1):
-            xbmcgui.Dialog().notification(
-            heading="Trakt Error",
-            message="API Rate Limit Exceeded - please try again later",
-            icon=xbmcgui.NOTIFICATION_ERROR,
-            time=5000,
-            )
+            self._error_notification("API Rate Limit Exceeded - please try again later")
             return {},{}
         else:
             self.rate_limit = {"start": 0, "length": -1}
@@ -202,13 +206,12 @@ class TraktClient:
         cache_key = None
 
         if use_cache:
-         cache_key = str(self.BASE_URL + endpoint + method + self.access_token + self.refresh_token)
+         cache_key = str(self.BASE_URL + endpoint + method + self.ID)
          cached = get_cached(cache_key)
-         if cached is not None:
+         if cached:
                 return cached.get("data"), cached.get("header")
-            
         if not self.access_token:
-            xbmcgui.Dialog().notification("KodiSeerr", "Trakt not authorized", xbmcgui.NOTIFICATION_ERROR)
+            self._error_notification("Trakt not authorized")
             raise requests.HTTPError
         authed_headers = {**self.headers, "Authorization": f"Bearer {self.access_token}"}
         try:
@@ -216,16 +219,16 @@ class TraktClient:
             method, f"{self.BASE_URL}{endpoint}", headers=authed_headers
         )
         except requests.ConnectionError as e:
-            self.__error_notification("A Connection error occurred.", e)
+            self._error_notification("A Connection error occurred.", e)
             raise e
         except requests.TooManyRedirects as e:
-            self.__error_notification("Too many redirects.", e)
+            self._error_notification("Too many redirects.", e)
             raise e
         except requests.Timeout as e:
-            self.__error_notification("The request timed out.", e)
+            self._error_notification("The request timed out.", e)
             raise e
 
-        headers = response.headers
+        headers = dict(response.headers)
         status_code = response.status_code
         
         ##not authorized, try to renew the access token
@@ -237,20 +240,20 @@ class TraktClient:
                 raise e
             continue
 
-        if not self.__handle_status_code(status_code, headers):
+        if not self._handle_status_code(status_code, headers):
             xbmc.sleep(1000)
             raise requests.HTTPError
         try:
             data = response.json()
         except requests.JSONDecodeError as e:
-            self.__error_notification("No valid json received", e)
+            self._error_notification("No valid json received", e)
             raise e
 
         if use_cache:
-            set_cached(cache_key, {"data": data, "header": dict(headers)})
+            set_cached(cache_key, {"data": data, "header": headers})
         return data, response.headers
 
-    def __handle_status_code(self, status_code: int, headers) -> bool:
+    def _handle_status_code(self, status_code: int, headers) -> bool:
         if status_code in (200, 201, 204):
             return True
         
@@ -282,11 +285,11 @@ class TraktClient:
         }
 
         message = error_messages.get(status_code, f"Unexpected error (HTTP {status_code})")
-        self.__error_notification(message)
+        self._error_notification(message)
 
         return False
     
-    def __error_notification(self, message, exception = None):
+    def _error_notification(self, message, exception = None):
             if exception is not None:
                 xbmc.log(f"[kodiseer] Trakt: {str(exception)}", level=xbmc.LOGERROR)
             xbmc.log(f"[kodiseer] Trakt: {message}", level=xbmc.LOGERROR)
@@ -294,5 +297,5 @@ class TraktClient:
             heading="Trakt Error",
             message=message,
             icon=xbmcgui.NOTIFICATION_ERROR,
-            time=5000,
+            time=4000,
         )
