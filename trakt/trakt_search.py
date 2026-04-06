@@ -12,6 +12,7 @@ def search(query, trakt_client, addon_handle, page=1, number_of_items=25, extern
         response, total_pages =  trakt_client.paginated_request("GET", f"/search/movie,show?query={query}&extended=full,images&page={page}&limit={number_of_items}")
     except Exception:
         xbmcplugin.endOfDirectory(addon_handle)
+        return
     for rec in response:
         seerr_media_type = "movie"
         trakt_media_type = rec.get("type")
