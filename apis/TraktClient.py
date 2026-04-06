@@ -41,6 +41,10 @@ class TraktClient:
         return response.json()
 
     def refresh_access_token(self) -> None:
+     max_tries = 3
+     current_try = 1
+     while current_try <= max_tries:
+      current_try = current_try+1 
       try:
         response = requests.post(
             f"{self.BASE_URL}/oauth/token",
@@ -54,21 +58,30 @@ class TraktClient:
         )
         response.raise_for_status()
       except requests.ConnectionError as e:
+            if current_try < max_tries:
+                continue
             self.__error_notification("A Connection error occurred.", e)
             raise e
       except requests.TooManyRedirects as e:
+            if current_try < max_tries:
+                continue
             self.__error_notification("Too many redirects.", e)
             raise e
       except requests.Timeout as e:
+            if current_try < max_tries:
+                continue
             self.__error_notification("The request timed out.", e)
             raise e
       except requests.HTTPError as e:
+             if current_try < max_tries:
+                continue
              self.__error_notification("Could not renew access token, please reauthorize Trakt.", e)
              raise e
       data = response.json()
       self.access_token = data["access_token"]
       self.refresh_token = data["refresh_token"]
       self.save_tokens()
+      return
 
     def login(self) -> bool:
         device = self.request_device_code()

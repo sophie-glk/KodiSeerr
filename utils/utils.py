@@ -342,12 +342,13 @@ def save_file(data, file_path):
     except Exception as e:
         xbmc.log(f"[KodiSeerr] File save error: {e}", xbmc.LOGERROR)
 
-def handle_empty_directory(addon_handle):
+def handle_empty_directory(addon_handle, go_back=True):
         import xbmc
         import xbmcplugin
         xbmcplugin.setContent(addon_handle, 'videos')
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)   
         xbmc.sleep(50)
-        xbmc.executebuiltin('Action(Back)')
+        if go_back:
+            xbmc.executebuiltin('Action(Back)')
 
      
