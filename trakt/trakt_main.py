@@ -33,6 +33,7 @@ def trakt_main_menu(addon_handle):
         ('show_trending_lists',    'Trending Lists',       'DefaultMovies.png',               True),
         ('show_popular_lists',    'Popular Lists',       'DefaultMovies.png',               True),
          ('show_watch_list',    'My Watchlist',       'DefaultMovies.png',               True),
+         ('search',    'Search',       'DefaultAddonsSearch.png',               True)
 
     ]
     for item in items:
@@ -94,6 +95,9 @@ def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1):
     elif trakt_mode == "show_watch_list":
         from trakt.lists import show_watchlist
         show_watchlist(trakt_client, addon_handle, page=page)
+    elif trakt_mode == "search":
+        from trakt.trakt_search import search
+        search(args.get("query", ""), trakt_client, addon_handle, page=page, external_keyboard=args.get("ext_keyboard", False))
 
 # ── Recommended (no pagination per API) ──────────────────────────────────────
 def show_recommended_shows(trakt_client, addon_handle):
@@ -289,14 +293,12 @@ def show_boxoffice_movies(trakt_client, addon_handle):
     display_response(movies, "movie", addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
 
-# ── Lists ───────────────────────────────────
-# TODO
 
-def display_response(response, media_type, addon_handle, season = -1, episode = -1, use_tmdb_for_art=False):
+def display_response(response, seerr_media_type, addon_handle, season = -1, episode = -1, use_tmdb_for_art=False):
     if response is None:
         return
     isFolder = True
-    if media_type == "movie":
+    if seerr_media_type == "movie":
         isFolder = False
     for rec in response:
         tmdb_id = rec.get("ids", {}).get("tmdb", "")
@@ -310,12 +312,12 @@ def display_response(response, media_type, addon_handle, season = -1, episode = 
         votes = rec.get("votes", "")
         runtime = int(rec.get("runtime", "") or 0)*60  # Trakt returns in minutes, kodi expects in seconds
         context_menu = []
-        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": tmdb_id})})'))
-        context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": tmdb_id})})'))
-        url = build_url({'mode': 'browse_menu', 'type': media_type, 'id': tmdb_id, 'season': season, 'episode': episode})
+        context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": seerr_media_type, "id": tmdb_id})})'))
+        context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": seerr_media_type, "id": tmdb_id})})'))
+        url = build_url({'mode': 'browse_menu', 'type': seerr_media_type, 'id': tmdb_id, 'season': season, 'episode': episode})
         list_item = xbmcgui.ListItem(label=label)
         list_item.addContextMenuItems(context_menu)
-        info = {'title': title, 'plot': overview, 'year': year, 'mediatype': media_type, 'genre': genres, 'rating': rating, 'votes': votes, 'duration': runtime}
+        info = {'title': title, 'plot': overview, 'year': year, 'mediatype': seerr_media_type, 'genre': genres, 'rating': rating, 'votes': votes, 'duration': runtime}
         set_info_tag(list_item, info)
         art = {}
         for k in ["poster", "fanart", "logo", "banner", "landscapePath", "thumb", "clearart"]:
