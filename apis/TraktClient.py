@@ -193,7 +193,8 @@ class TraktClient:
     
     def __api_request(self, method: str, endpoint: str, use_cache: bool = True):
       attempt = 0
-      while attempt < 2:
+      while attempt <= 2:
+        attempt = attempt+1
         #check if we have run into a rate limit:
         if time.time() - self.rate_limit.get("start", 0) <= self.rate_limit.get("length", -1):
             self._error_notification("API Rate Limit Exceeded - please try again later")
@@ -232,8 +233,7 @@ class TraktClient:
         status_code = response.status_code
         
         ##not authorized, try to renew the access token
-        if status_code == 401 and attempt == 0:
-            attempt = attempt+1
+        if status_code == 401 and attempt == 1:
             try:
                 self.refresh_access_token()
             except Exception as e:
