@@ -44,13 +44,13 @@ def show_movie_request(id, request_id, mediaData, seer_status, item, radarr_clie
 
 def get_radarr_queue_data(radarr_client):
     try:
-        requestData_radarr = radarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
+        requestData_radarr = radarr_client.api_request(f"/queue", params={}, use_cache=False).get("records", []) 
     except:
         return []
     requestData_radarr_4k = []
     if radarr_client.has4k():
         try:
-            requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
+            requestData_radarr_4k = radarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records", [])
         except:
             pass
     for item in requestData_radarr:
@@ -65,6 +65,6 @@ def get_radarr_queue_data(radarr_client):
         try:
             tmdbId = radarr_client.api_request(f"/movie/{movieId}", request_4k=True).get("tmdbId")
         except:
-            return []
+            continue
         item.update({"tmdbId" : tmdbId})
     return requestData_radarr + requestData_radarr_4k

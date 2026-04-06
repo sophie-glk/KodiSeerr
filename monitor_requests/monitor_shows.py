@@ -54,7 +54,7 @@ def show_requested_seasons(id, request_id, jellyseer_client, addon_handle, sonar
     except:
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
-    media_info = seer_info.get("mediaInfo", [])
+    media_info = seer_info.get("mediaInfo", {})
     seasons = media_info.get("seasons", []) if media_info else []      
     for season in seasons :
         season_number = season.get("seasonNumber", 0)
@@ -81,14 +81,14 @@ def show_requested_episodes_by_season(id, season, jellyseer_client, sonarr_clien
     try:
         seer_episode_data = jellyseer_client.api_request(f"/tv/{id}/season/{season}").get("episodes", [])
         show_name = jellyseer_client.api_request(f"/tv/{id}", method="GET").get("name", "")
-        sonarr_requests = sonarr_client.api_request(f"/queue", params={}, use_cache=False).get("records")
+        sonarr_requests = sonarr_client.api_request(f"/queue", params={}, use_cache=False).get("records", [])
     except:
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
         return
     if sonarr_client.has4k():
         episodes += get_sonarr_episodes(id, season, sonarr_client, use_4k=True)
         try:
-            sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records")
+            sonarr_requests += sonarr_client.api_request(f"/queue", params={}, request_4k=True, use_cache=False).get("records", [])
         except:
             pass
     for ep in episodes:
@@ -145,6 +145,8 @@ def get_sonarr_episodes(id, season_num, sonarr_client, use_4k=False):
         if int(series.get("tmdbId")) == int(id):
            series_id = series.get("id")
            break
+    if not series_id:
+        return []
     try:
         episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = use_4k, use_cache=False)
     except:

@@ -28,7 +28,7 @@ def show_popular_lists(trakt_client, addon_handle, page=1, number_of_items=25):
         xbmcplugin.endOfDirectory(addon_handle)
         return
     show_lists([l.get("list") for l in popular_lists], addon_handle)
-    add_next_page_button({"mode": "trakt", "trakt_mode": "show_trending_lists"}, int(page), int(total_pages), addon_handle)
+    add_next_page_button({"mode": "trakt", "trakt_mode": "show_popular_lists"}, int(page), int(total_pages), addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)
 
 def show_trending_lists(trakt_client, addon_handle, page = 1, number_of_items=25):
@@ -86,7 +86,8 @@ def show_list_items(user_slug, list_id, trakt_client, addon_handle, page=1, numb
              season_nr = episode_data.get("season")
          #TODO 
          #Display notes   
-
+         if media_info is None:
+             continue
          display_response([media_info], display_type, addon_handle, season=season_nr, episode=episode_nr)
     add_next_page_button({"mode": "trakt", "trakt_mode": "show_list_items", "user_slug": user_slug, "list_id": list_id}, int(page), int(total_pages), addon_handle)
     xbmcplugin.endOfDirectory(addon_handle)    
@@ -99,4 +100,4 @@ def show_watchlist(trakt_client, addon_handle, page=1, number_of_items=25):
         xbmcplugin.endOfDirectory(addon_handle)
         return
     user_slug = user_ids.get("slug")
-    show_list_items(user_slug, -1, trakt_client, page, number_of_items, is_watchlist=True) 
+    show_list_items(user_slug, -1, trakt_client, page, addon_handle, number_of_items, is_watchlist=True) 

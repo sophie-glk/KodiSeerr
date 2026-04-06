@@ -75,10 +75,10 @@ class ApiClient:
             )
             xbmc.log(f"[kodiseer] REQUEST: {method} {url} | body: {data_json} | headers: {headers}", level=xbmc.LOGERROR)
         except requests.ConnectionError as e:
-            self.__error_notification("A Connection error occurred.", e)
+            self._error_notification("A Connection error occurred.", e)
             raise e
         except requests.TooManyRedirects as e:
-            self.__error_notification("Too many redirects.", e)
+            self._error_notification("Too many redirects.", e)
             raise e
         except requests.Timeout as e:
             self._error_notification("The request timed out.", e)
@@ -91,7 +91,7 @@ class ApiClient:
         try:
             result = response.json()
         except requests.JSONDecodeError as e:
-            self.__error_notification("No valid json received", e)
+            self._error_notification("No valid json received", e)
             raise e
         if use_cache:
             set_cached(cache_key, result)

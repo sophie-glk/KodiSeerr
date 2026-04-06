@@ -25,7 +25,7 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
                 return
             series_data["RootFolderPath"] = seerr_sonarr_settings.get("activeDirectory")
             series_data["QualityProfileId"] = seerr_sonarr_settings.get("activeProfileId")
-            series_data["path"] = f"{series_data["RootFolderPath"]}/{title}"
+            series_data["path"] = f"{series_data['RootFolderPath']}/{title}"
             series_data["seasonFolder"] = seerr_sonarr_settings.get("enableSeasonFolders")
             #series_data["addOptions"] = {"searchForMissingEpisodes": True}
             try:
@@ -47,6 +47,9 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
           if int(ep.get("seasonNumber")) == int(season) and int(ep.get("episodeNumber")) == int(episode_number):
             episode_id = [ep.get("id")]
             episode_title = ep.get("title")
+      if not episode_id:
+       xbmcgui.Dialog().notification('KodiSeerr', 'Episode not found.', xbmcgui.NOTIFICATION_ERROR, 4000)
+       return
 
       if confirm_before_request:
         title = series_data.get("title")

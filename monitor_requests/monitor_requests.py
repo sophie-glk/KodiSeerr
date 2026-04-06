@@ -49,18 +49,18 @@ def show_requests(page, jellyseer_client, radarr_client, sonarr_client, addon_ha
 
 
 def get_url_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_number=-1):
-        dir = False
+        is_directory = False
         tmdb_type = media_type
         if media_type == "episode":
             tmdb_type = "tv"
         if media_type != "movie":
-            dir = True
+            is_directory = True
         if status in [2, 3]:
-            url = build_url({"mode": "cancel_request", "request_id": request_id, "handle_empty_directory": dir, "type": media_type})
+            url = build_url({"mode": "cancel_request", "request_id": request_id, "handle_empty_directory": is_directory, "type": media_type})
         elif status == 5:
             url = build_url({"mode": "play_local_file", "id": tmdb_id, "type": tmdb_type, "season": season, "episode": episode_number})
         else:
-            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "handle_empty_directory": dir})
+            url = build_url({'mode': 'request', 'type': media_type, 'id': tmdb_id, "season": season, "episode": episode_number, "handle_empty_directory": is_directory})
         return url
 
 def get_context_menu_by_status(status, tmdb_id, request_id, media_type, season=-1, episode_nr=-1, episode_id=-1):

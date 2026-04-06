@@ -176,7 +176,7 @@ def get_quality_profiles(jellyseer_client, media_type, is4k = False):
     try:
         servers = jellyseer_client.api_request(f"/service/{backend_name}")
     except:
-        return
+        return []
     default_server_id = -1
     if not servers:
         return []

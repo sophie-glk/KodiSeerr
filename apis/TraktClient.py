@@ -42,7 +42,7 @@ class TraktClient:
 
     def refresh_access_token(self) -> None:
      max_tries = 3
-     current_try = 1
+     current_try = 0
      while current_try <= max_tries:
       current_try = current_try+1 
       try:
