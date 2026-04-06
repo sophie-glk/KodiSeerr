@@ -22,9 +22,10 @@ def remove_from_favorites(media_type, media_id, favorites_path):
     favorites = load_favorites(favorites_path)
     fav_key = f"{media_type}_{media_id}"
     if fav_key in favorites:
+        from utils.logging import notify_info
         favorites.remove(fav_key)
         save_favorites(favorites, favorites_path)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Removed from favorites', xbmcgui.NOTIFICATION_INFO)
+        notify_info("Removed from favorites")
         xbmc.executebuiltin('Container.Refresh')
 
 def list_favorites(favorites_path, jellyseer_client, addon_handle):

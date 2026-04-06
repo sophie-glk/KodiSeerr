@@ -7,7 +7,8 @@ def show_statistics(jellyseer_client, addon_handle):
     try:
         requests_data = jellyseer_client.api_request('/request', params={'take': 1000})
         if not requests_data:
-            xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
+            from utils.logging import notify_error
+            notify_error("Failed to fetch statistics")
             return
         
         items = requests_data.get('results', [])
@@ -35,6 +36,6 @@ def show_statistics(jellyseer_client, addon_handle):
         
         xbmcgui.Dialog().textviewer("Statistics", stats)
     except Exception as e:
-        from utils.logging import log_error
+        from utils.logging import log_error, notify_error
         log_error(f"Statistics error: {e}")
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)
+        notify_error("Failed to fetch statistics")

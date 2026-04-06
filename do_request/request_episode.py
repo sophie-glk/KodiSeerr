@@ -21,7 +21,8 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
                     seerr_sonarr_settings = instance
                     break          
             if not seerr_sonarr_settings:
-                xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed.', xbmcgui.NOTIFICATION_ERROR, 4000)
+                from utils.logging import notify_error
+                notify_error("Request Failed")
                 return
             series_data["RootFolderPath"] = seerr_sonarr_settings.get("activeDirectory")
             series_data["QualityProfileId"] = seerr_sonarr_settings.get("activeProfileId")
@@ -39,7 +40,8 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
       except:
           return
       if not episodes:
-          xbmcgui.Dialog().notification('KodiSeerr', f'Request Failed', xbmcgui.NOTIFICATION_ERROR, 4000)
+          from utils.logging import notify_error
+          notify_error("Request Failed")
           return
       episode_id =[]
       episode_title = ""
@@ -48,7 +50,8 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
             episode_id = [ep.get("id")]
             episode_title = ep.get("title")
       if not episode_id:
-       xbmcgui.Dialog().notification('KodiSeerr', 'Episode not found.', xbmcgui.NOTIFICATION_ERROR, 4000)
+       from utils.logging import notify_error
+       notify_error("Episode not found")
        return
 
       if confirm_before_request:
@@ -64,7 +67,8 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
           sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
       except:
           return
-      xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
+      from utils.logging import notify_info
+      notify_info("Request Sent!")
 
       requests_data = settings.get_preferences("episode_requests")
       shows = requests_data.get("requests", {})

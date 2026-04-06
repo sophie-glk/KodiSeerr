@@ -4,7 +4,7 @@ import xbmcgui
 import json
 import os
 from datetime import datetime
-
+from utils.logging import notify_error, notify_info, log_error
 addon = xbmcaddon.Addon()
 
 def export_settings():
@@ -47,11 +47,10 @@ def export_settings():
         
         with open(filepath, 'w') as f:
             json.dump(settings, f, indent=2)
-        
-        xbmcgui.Dialog().notification('KodiSeerr', f'Settings exported to {filename}', xbmcgui.NOTIFICATION_INFO, 3000)
+        notify_info(f"Settings exported to {filename}")
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Export error: {e}", xbmc.LOGERROR)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Export failed', xbmcgui.NOTIFICATION_ERROR)
+        log_error(f"Export error: {e}")
+        notify_error("Export failed")
 
 def import_settings():
     """Import addon settings from a JSON file"""
@@ -81,12 +80,10 @@ def import_settings():
                     addon.setSetting(key, str(value))
             except Exception as e:
                 xbmc.log(f"[KodiSeerr] Failed to import setting {key}: {e}", xbmc.LOGWARNING)
-        
-        xbmcgui.Dialog().notification('KodiSeerr', 'Settings imported successfully', xbmcgui.NOTIFICATION_INFO, 3000)
+        notify_info("Settings imported successfully")
     except Exception as e:
-        from utils.logging import log_error
         log_error(f"Import error: {e}")
-        xbmcgui.Dialog().notification('KodiSeerr', 'Import failed', xbmcgui.NOTIFICATION_ERROR)
+        notify_error('Import failed')
 
 if __name__ == '__main__':
     import sys

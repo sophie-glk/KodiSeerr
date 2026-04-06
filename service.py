@@ -6,6 +6,7 @@ import json
 from apis.create_client import create_client
 import os
 from apis.jellyseerr_api import JellyseerrClient
+from utils.logging import notify_info
 addon = xbmcaddon.Addon()
 monitor = xbmc.Monitor()
 
@@ -62,13 +63,13 @@ def main_loop():
                         
                         # Notify on status changes
                         if media_status == 5 and previous_status != 5:
-                            xbmcgui.Dialog().notification('KodiSeerr', f'{title} is now available!', xbmcgui.NOTIFICATION_INFO, 5000)
+                            notify_info( f'{title} is now available!')
                             notified_ids[media_id] = {'status': 5, 'title': title}
                         elif media_status == 3 and previous_status != 3 and addon.getSettingBool('notify_processing'):
-                            xbmcgui.Dialog().notification('KodiSeerr', f'{title} is now processing', xbmcgui.NOTIFICATION_INFO, 4000)
+                            notify_info(f'{title} is now processing')
                             notified_ids[media_id] = {'status': 3, 'title': title}
                         elif media_status == 2 and previous_status != 2 and addon.getSettingBool('notify_approved'):
-                            xbmcgui.Dialog().notification('KodiSeerr', f'{title} request approved', xbmcgui.NOTIFICATION_INFO, 4000)
+                            notify_info(f'{title} request approved')
                             notified_ids[media_id] = {'status': 2, 'title': title}
                         elif media_status != previous_status and media_id not in notified_ids:
                             notified_ids[media_id] = {'status': media_status, 'title': title}

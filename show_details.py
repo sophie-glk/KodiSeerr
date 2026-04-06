@@ -6,7 +6,8 @@ def show_details(media_type, media_id, jellyseer_client):
     except:
         return
     if not data:
-        xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch details", xbmcgui.NOTIFICATION_ERROR)
+        from utils.logging import notify_error
+        notify_error("Failed to fetch details")
         return
     
     title = data.get('title') or data.get('name', 'Unknown')

@@ -17,7 +17,8 @@ def play_local_file(tmdb_id, media_type, jellyseer_client, addon_handle, season 
         path = get_local_episode(tvdb_id, tmdb_id, imdb_id, season, episode)
 
     if path is None:
-         xbmcgui.Dialog().notification('KodiSeerr', f'Could not find the local file', xbmcgui.NOTIFICATION_ERROR, 4000)
+         from utils.logging import notify_error
+         notify_error(f'Could not find the local file')
          return
     play_item = xbmcgui.ListItem()
     play_item.setPath(path)

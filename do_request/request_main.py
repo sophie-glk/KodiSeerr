@@ -57,7 +57,8 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     
     try:
         jellyseer_client.api_request("/request", method="POST", data=payload)
-        xbmcgui.Dialog().notification('KodiSeerr', 'Request Sent!', xbmcgui.NOTIFICATION_INFO, 3000)
+        from utils.logging import notify_info
+        notify_info("Request Sent!")
     except:
         return
 

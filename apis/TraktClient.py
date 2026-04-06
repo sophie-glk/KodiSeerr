@@ -290,14 +290,9 @@ class TraktClient:
         return False
     
     def _error_notification(self, message, exception = None):
-            from utils.logging import log_error
+            from utils.logging import log_error, notify_error
             log_error(f"Trakt: {message}")
             if exception is not None:
                 log_error(f"Trakt: {str(exception)}")
             xbmc.log(f"[kodiseer] Trakt: {message}", level=xbmc.LOGERROR)
-            xbmcgui.Dialog().notification(
-            heading="Trakt Error",
-            message=message,
-            icon=xbmcgui.NOTIFICATION_ERROR,
-            time=4000,
-        )
+            notify_error(heading="Trakt", message=message)

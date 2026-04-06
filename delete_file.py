@@ -39,7 +39,8 @@ def delete_file(tmdb_id, media_type, jellyseer_client, sonarr_client, settings, 
             media_id = media.get("id")  
             break
     if media_id == 0:
-        xbmcgui.Dialog().notification("KodiSeerr", f"Failed to find item in Seerr Database {tmdb_id}", xbmcgui.NOTIFICATION_ERROR)
+        from utils.logging import notify_error
+        notify_error(f"Failed to find item in Seerr Database {tmdb_id}")
         return
     try:
         jellyseer_client.api_request(f"/media/{media_id}/file", method="DELETE")

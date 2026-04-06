@@ -307,7 +307,8 @@ def jump_to_page(args):
             
             xbmc.executebuiltin(f'Container.Update({build_url(params)})')
         except ValueError:
-            xbmcgui.Dialog().notification('KodiSeerr', 'Invalid page number', xbmcgui.NOTIFICATION_ERROR)
+            from utils.logging import notify_error
+            notify_error("Invalid page number")
 
 def add_next_page_button(url_dict, page: int, total_pages: int, addon_handle):
   import xbmcgui

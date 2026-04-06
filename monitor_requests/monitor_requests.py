@@ -84,6 +84,7 @@ def is_directory(status):
     return True
 
 def cancel_request(request_id, jellyseer_client, media_type):
+    from utils.logging import notify_info, notify_error
     """Cancel a pending request"""
     if media_type == "episode":
         xbmcgui.Dialog().info('KodiSeerr', "Single episode requests can not be canceled.")
@@ -95,7 +96,7 @@ def cancel_request(request_id, jellyseer_client, media_type):
             jellyseer_client.api_request(f"/request/{request_id}", method="DELETE")
         except:
             return
-        xbmcgui.Dialog().notification('KodiSeerr', 'Request cancelled', xbmcgui.NOTIFICATION_INFO)
+        notify_info("Request cancelled")
         xbmc.executebuiltin('Container.Refresh')
     else:
-        xbmcgui.Dialog().notification('KodiSeerr', f'Could not find a matching request', xbmcgui.NOTIFICATION_ERROR)
+        notify_error("Could not find a matching request")

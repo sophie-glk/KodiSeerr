@@ -103,15 +103,10 @@ class ApiClient:
         return False
     
     def _error_notification(self, message, exception =  requests.HTTPError):
-            from utils.logging import log_error
+            from utils.logging import log_error, notify_error
             log_error( f"{self.name} : {str(exception)}")
             log_error(f"{self.name} : {message}")
             if self._disable_error_messages:
                 return
-            xbmcgui.Dialog().notification(
-            heading=f"[kodiseer] {self.name}",
-            message=message,
-            icon=xbmcgui.NOTIFICATION_ERROR,
-            time=5000,
-        )
+            notify_error(heading=self.name, message=message)
     
