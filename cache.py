@@ -43,8 +43,8 @@ def get_cached(key: str):
         return None
     
     hashed_key = hashlib.sha256(str(key).encode("utf-8")).hexdigest()
-    if hashed_key in cache:
-        entry = cache[hashed_key]
+    entry = cache.get(hashed_key)
+    if entry:
         if time.time() - entry.get('timestamp', 0) < entry.get("duration", 60):
             return entry.get('data')
     return None
