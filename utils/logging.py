@@ -1,4 +1,4 @@
-name = "KodiSerr"
+name = "Seerr4Kodi"
 prefix  = f"[{name}]"
 def log_error(message):
     import xbmc
