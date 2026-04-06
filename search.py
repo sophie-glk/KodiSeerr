@@ -19,7 +19,9 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
         results = data.get('results', []) if data else []
         total_pages = data.get("totalPages", 1)
         for item in results:
-            media_type = item.get('mediaType', 'movie')
+            media_type = item.get('mediaType', '')
+            if media_type not in ['movie', 'tv']:
+                continue
             title = item.get('title') or item.get('name')
             release_date = item.get('releaseDate') or item.get('firstAirDate')
             year = int(release_date.split("-")[0]) if release_date and release_date.split("-")[0].isdigit() else None
@@ -43,9 +45,7 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
             art = make_art(item)
             set_info_tag(list_item, info)
             list_item.setArt(art)
-            isFolder = False
-            if media_type != "movie":
-                isFolder = True
+            isFolder = False if media_type == "movie" else isFolder = True
             xbmcplugin.addDirectoryItem(addon_handle, url, list_item, isFolder)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_UNSORTED)
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_LABEL)
