@@ -136,7 +136,8 @@ def get_media_status(media_type, media_id, jellyseer_client):
             status = data['mediaInfo'].get('status', 0)
             return status
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Status check error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Status check error: {e}")
     return 0
 
 def list_episodes(tv_id, season_number, jellyseer_client, addon_handle):
@@ -328,7 +329,8 @@ def load_file(file_path):
             with open(file_path, 'r') as f:
                 return json.load(f)
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Preferences load error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Preferences load error: {e}")
     return {}
 
 def save_file(data, file_path):
@@ -340,7 +342,8 @@ def save_file(data, file_path):
         with open(file_path, 'w') as f:
             json.dump(data, f)
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] File save error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"File save error: {e}")
 
 def handle_empty_directory(addon_handle, go_back=True):
         import xbmc

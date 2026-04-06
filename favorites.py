@@ -70,7 +70,8 @@ def load_favorites(favorites_path):
             with open(favorites_path, 'r') as f:
                 return set(json.load(f))
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Favorites load error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Favorites load error: {e}")
     return set()
 
 def save_favorites(favorites, favorites_path):

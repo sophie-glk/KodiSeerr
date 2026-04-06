@@ -84,7 +84,8 @@ def import_settings():
         
         xbmcgui.Dialog().notification('KodiSeerr', 'Settings imported successfully', xbmcgui.NOTIFICATION_INFO, 3000)
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Import error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Import error: {e}")
         xbmcgui.Dialog().notification('KodiSeerr', 'Import failed', xbmcgui.NOTIFICATION_ERROR)
 
 if __name__ == '__main__':

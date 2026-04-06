@@ -18,5 +18,6 @@ def report_issue(media_type, media_id, jellyseer_client):
             return
         xbmcgui.Dialog().notification('KodiSeerr', 'Issue reported', xbmcgui.NOTIFICATION_INFO)
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Issue report error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Issue report error: {e}")
         xbmcgui.Dialog().notification('KodiSeerr', 'Failed to report issue', xbmcgui.NOTIFICATION_ERROR)

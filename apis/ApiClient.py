@@ -73,7 +73,6 @@ class ApiClient:
                 data=data_json.encode("utf-8") if data_json else None,
                 headers=headers,
             )
-            xbmc.log(f"[kodiseer] REQUEST: {method} {url} | body: {data_json} | headers: {headers}", level=xbmc.LOGERROR)
         except requests.ConnectionError as e:
             self._error_notification("A Connection error occurred.", e)
             raise e
@@ -104,8 +103,9 @@ class ApiClient:
         return False
     
     def _error_notification(self, message, exception =  requests.HTTPError):
-            xbmc.log(f"[kodiseer] {self.name} : {str(exception)}", level=xbmc.LOGERROR)
-            xbmc.log(f"[kodiseer] {self.name} : {message}", level=xbmc.LOGERROR)
+            from utils.logging import log_error
+            log_error( f"{self.name} : {str(exception)}")
+            log_error(f"{self.name} : {message}")
             if self._disable_error_messages:
                 return
             xbmcgui.Dialog().notification(

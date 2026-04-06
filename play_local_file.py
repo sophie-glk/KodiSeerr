@@ -42,7 +42,8 @@ def get_local_episode(tvdb_id, tmdb_id, imdb_id, season, episode):
             show = s
             break
     if show is None:
-        xbmc.log(f"Show with TvDB ID {tvdb_id} not found in local library", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Show with TvDB ID {tvdb_id} not found in local library")
         return None
     show_id = show.get("tvshowid")
     

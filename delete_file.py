@@ -27,7 +27,6 @@ def delete_file(tmdb_id, media_type, jellyseer_client, sonarr_client, settings, 
           if found:
               break
         settings.save_preferences("episode_requests", requests_data)    
-        #xbmc.log(f"[kodiseerr] {response}", xbmc.LOGERROR)
         xbmc.executebuiltin('Container.Refresh')        
         return
     try:

@@ -35,5 +35,6 @@ def show_statistics(jellyseer_client, addon_handle):
         
         xbmcgui.Dialog().textviewer("Statistics", stats)
     except Exception as e:
-        xbmc.log(f"[KodiSeerr] Statistics error: {e}", xbmc.LOGERROR)
+        from utils.logging import log_error
+        log_error(f"Statistics error: {e}")
         xbmcgui.Dialog().notification("KodiSeerr", "Failed to fetch statistics", xbmcgui.NOTIFICATION_ERROR)

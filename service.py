@@ -42,10 +42,9 @@ def main_loop():
         if addon.getSettingBool('enable_request_notifications'):
             try:
                 requests_data = create_client(JellyseerrClient).api_request('/request')
-            except Exception:
-                import traceback
-                traceback.print_exc()
-                xbmc.log("[KodiSeerr Service] Fetch requests failed", xbmc.LOGERROR)
+            except Exception as e:
+                from utils.logging import log_error
+                log_error(f"Fetch requests failed: {e}")
                 requests_data = None
             
             if requests_data:
