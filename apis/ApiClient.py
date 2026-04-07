@@ -7,7 +7,8 @@ from urllib.parse import urlencode, quote
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None):
+    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None, allow_self_signed = False):
+        self.allow_self_signed = allow_self_signed
         self._disable_error_messages = False
         self.endpoint_url = endpoint_url
         self.api_token = api_token
@@ -19,12 +20,8 @@ class ApiClient:
         self.init_session()
 
     def init_session(self):
-        """Initializes the requests session with SSL verification based on addon settings."""
-        addon = xbmcaddon.Addon()
-        allow_self_signed = addon.getSettingBool("allow_self_signed")
-
         self.session = requests.Session()
-        self.session.verify = not allow_self_signed
+        self.session.verify = not self.allow_self_signed
 
     def has4k(self):
         return self.__has4k

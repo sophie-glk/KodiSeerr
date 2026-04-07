@@ -1,5 +1,5 @@
 import sys
-from cache import load_cache, save_cache, clean_cache
+from cache import load_cache, save_cache, clean_cache, set_cache_duration, set_caching_disabled
 from Settings import Settings
 from utils.url_handling import set_base_url
 import xbmcvfs
@@ -9,7 +9,6 @@ from apis.create_client import create_client
 from apis.jellyseerr_api import JellyseerrClient
 from apis.radarr_api import RadarrClient
 from apis.sonarr_api import SonarrClient
-load_cache()
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
 favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
@@ -20,8 +19,15 @@ addon_path = addon.getAddonInfo('path')
 base_url = sys.argv[0]
 set_base_url(base_url)
 args = dict(urllib.parse.parse_qsl(sys.argv[2][1:]))
-jellyseer_client = create_client(JellyseerrClient)
 
+load_cache()
+set_cache_duration(settings.get_cache_duration())
+
+if not settings.get_enable_cache():
+    set_caching_disabled()
+
+    ##uses settings
+jellyseer_client = create_client(JellyseerrClient)
 radarr_client = None
 sonarr_client = None
 enable_radarr = settings.enable_radarr()
@@ -33,6 +39,7 @@ if enable_sonarr:
 
 mode = args.get('mode')
 page = int(args.get('page', 1))
+items_per_page = settings.get_items_per_page()
 
 if args.get("handle_empty_directory") == "True":
     from utils.utils import handle_empty_directory
@@ -124,7 +131,7 @@ elif mode == "refresh":
     xbmc.executebuiltin('Container.Refresh')
 elif mode == "trakt":
     from trakt.trakt_main import trakt_router
-    trakt_router(args, addon_handle, addon_data_path, page)
+    trakt_router(args, addon_handle, addon_data_path, page, items_per_page)
 
 clean_cache()
 save_cache()

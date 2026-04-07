@@ -4,10 +4,10 @@ from utils.url_handling import build_url
 import xbmcgui
 import xbmcplugin
 
-def trakt_router(args, addon_handle, addon_data_path, page=1):
+def trakt_router(args, addon_handle, addon_data_path, page=1, items_per_page = 25):
     trakt_mode = args.get("trakt_mode" ,"")
     if trakt_mode != "":
-        handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page)
+        handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page, items_per_page)
         return
     trakt_main_menu(addon_handle)
 
@@ -46,56 +46,56 @@ def trakt_main_menu(addon_handle):
         xbmcplugin.addDirectoryItem(addon_handle, url, list_item, is_folder)
     xbmcplugin.endOfDirectory(addon_handle)
 
-def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1):
+def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1, items_per_page=25):
     trakt_client = TraktClient(addon_data_path)
     if trakt_mode == "recommended_shows":
         show_recommended_shows(trakt_client, addon_handle)
     elif trakt_mode == "recommended_movies":
         show_recommended_movies(trakt_client, addon_handle)
     elif trakt_mode == "trending_movies":
-        show_trending_movies(trakt_client, addon_handle, page)
+        show_trending_movies(trakt_client, addon_handle, page , items_per_page)
     elif trakt_mode == "trending_shows":
-        show_trending_shows(trakt_client, addon_handle, page)
+        show_trending_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "popular_shows":
-        show_popular_shows(trakt_client, addon_handle, page)
+        show_popular_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "popular_movies":
-        show_popular_movies(trakt_client, addon_handle, page)
+        show_popular_movies(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "watched_shows":
-        show_watched_shows(trakt_client, addon_handle, page)
+        show_watched_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "watched_movies":
-        show_watched_movies(trakt_client, addon_handle, page)
+        show_watched_movies(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "played_shows":
-        show_played_shows(trakt_client, addon_handle, page)
+        show_played_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "played_movies":
-        show_played_movies(trakt_client, addon_handle, page)
+        show_played_movies(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "collected_shows":
-        show_collected_shows(trakt_client, addon_handle, page)
+        show_collected_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "collected_movies":
-        show_collected_movies(trakt_client, addon_handle, page)
+        show_collected_movies(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "anticipated_shows":
-        show_anticipated_shows(trakt_client, addon_handle, page)
+        show_anticipated_shows(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "anticipated_movies":
-        show_anticipated_movies(trakt_client, addon_handle, page)
+        show_anticipated_movies(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "boxoffice_movies":
         show_boxoffice_movies(trakt_client, addon_handle)
     elif trakt_mode == "show_user_lists":
         from trakt.lists import show_user_lists
-        show_user_lists(trakt_client, addon_handle, page=page)
+        show_user_lists(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "show_popular_lists":
         from trakt.lists import show_popular_lists
-        show_popular_lists(trakt_client, addon_handle, page=page)
+        show_popular_lists(trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "show_trending_lists":
         from trakt.lists import show_trending_lists
-        show_trending_lists(trakt_client, addon_handle , page=page)
+        show_trending_lists(trakt_client, addon_handle , page, items_per_page)
     elif trakt_mode == "show_list_items":
         from trakt.lists import show_list_items
-        show_list_items(args.get("user_slug"), args.get("list_id"), trakt_client, addon_handle, page=page)
+        show_list_items(args.get("user_slug"), args.get("list_id"), trakt_client, addon_handle, page, items_per_page)
     elif trakt_mode == "show_watch_list":
         from trakt.lists import show_watchlist
         show_watchlist(trakt_client, addon_handle, page=page)
     elif trakt_mode == "search":
         from trakt.trakt_search import search
-        search(args.get("query", ""), trakt_client, addon_handle, page=page, external_keyboard=args.get("ext_keyboard", False))
+        search(args.get("query", ""), trakt_client, addon_handle, page=page, external_keyboard=args.get("ext_keyboard", False), number_of_items=items_per_page)
 
 # ── Recommended (no pagination per API) ──────────────────────────────────────
 def show_recommended_shows(trakt_client, addon_handle):

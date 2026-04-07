@@ -2,8 +2,8 @@ from apis.ApiClient import ApiClient
 
 class JellyseerrClient(ApiClient):
     name = "jellyseerr"
-    def __init__(self, server_url,  api_token, has_4k=False, server_url_4k=None, api_token_4k=None):
-       super().__init__(f"{server_url}/api/v1", api_token)
+    def __init__(self, server_url,  api_token, has_4k=False, server_url_4k=None, api_token_4k=None, allow_self_signed = False):
+       super().__init__(f"{server_url}/api/v1", api_token, has_4k, server_url_4k, api_token_4k,  allow_self_signed)
     
     def _handle_status_code(self, status_code):
         if status_code in [200, 201, 202, 204]:

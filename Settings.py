@@ -25,7 +25,6 @@ class Settings:
         preferences_path = self.get_preferences_path()
         prefs = load_file(preferences_path)
         
-        
     def enable_radarr(self):
         return self.addon.getSettingBool('radarr_enable')
     def enable_sonarr(self):
@@ -36,6 +35,16 @@ class Settings:
     def get_preferences_path(self, filename):
         import xbmcvfs
         return xbmcvfs.translatePath(f"{self.data_path}/{filename}.json")
+    
+    def get_items_per_page(self):
+        return self.addon.getSettingInt('items_per_page')
+    def get_enable_cache(self):
+        return self.addon.getSettingBool('enable_caching')
+    def get_cache_duration(self):
+        return self.addon.getSettingInt('cache_duration')
+    def get_allow_self_signed(self):
+        return self.addon.getSettingBool('allow_self_signed')
+    
     
     
 

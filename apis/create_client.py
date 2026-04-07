@@ -11,6 +11,7 @@ def create_client(client=JellyseerrClient):
     api_token = addon.getSetting(f"{client.name}_api_token")
     api_token_4k = None
     has_4k = False
+    allow_self_signed = addon.getSetting("allow_self_signed")
     try:
      has_4k = addon.getSettingBool(f"{client.name}_has_4k")
     except:
@@ -19,6 +20,6 @@ def create_client(client=JellyseerrClient):
      url_4k = addon.getSetting(f"{client.name}_url_4k")
      api_token_4k = addon.getSetting(f"{client.name}_api_token_4k")
 
-    return client(url, api_token, has_4k, url_4k, api_token_4k)
+    return client(url, api_token, has_4k, url_4k, api_token_4k, allow_self_signed)
 
 
