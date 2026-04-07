@@ -1,13 +1,9 @@
 import hashlib
-import xbmcaddon
-import xbmcvfs
 import xbmcgui
 import time
 import json
 
-addon = xbmcaddon.Addon()
 cache = {}
-cache_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/cache.json")
 cache_id = "c83c803f-b874-4f17-8b1b-079b9694943e"
 disable_caching = False
 cache_duration = 60
@@ -59,6 +55,11 @@ def set_cached(key, data,  duration=None):
     hashed_key = hashlib.sha256(str(key).encode("utf-8")).hexdigest()
     cache[hashed_key] = {'data': data, 'timestamp': time.time(), "duration": duration}
 
+
+def clear_cache():
+    global cache_id
+    window = xbmcgui.Window(10000)
+    window.setProperty(cache_id, {})
 
 def clean_cache():
     window = xbmcgui.Window(10000)
