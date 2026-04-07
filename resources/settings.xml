@@ -44,4 +44,5 @@
         <setting id="enable_caching" type="bool" label="Enable API caching" default="true" />
         <setting id="cache_duration" type="number" label="Cache duration (Seconds)" default="300" />
         <setting id="clear_cache" type="action" label="Clear Cache" action="RunScript(plugin.video.seerr4kodi,clear_cache)" />
+    </category>
 </settings>
