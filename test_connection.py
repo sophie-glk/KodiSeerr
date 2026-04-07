@@ -7,13 +7,11 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
     succ = "[COLOR lime] Success [/COLOR]"
     fail = "[COLOR red] Fail [/COLOR]"
 
-    jellyseerr_client.disable_error_messages()
-    sonarr_client.disable_error_messages()
-    radarr_client.disable_error_messages()
 
     # seerr
     status = fail
     try:
+        jellyseerr_client.disable_error_messages()
         response = jellyseerr_client.api_request("/settings/public")
         if response:
             status = succ
@@ -26,6 +24,7 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
 
      status = fail
      try:
+        sonarr_client.disable_error_messages()
         response = sonarr_client.api_request("/system/status")
         if response:
             status = succ
@@ -37,6 +36,7 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
      if sonarr_client.has4k():
         status = fail
         try:
+            sonarr_client.disable_error_messages()
             response = sonarr_client.api_request("/system/status", request_4k=True)
             if response:
                 status = succ
@@ -48,6 +48,7 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
     if settings.enable_radarr():
      status = fail
      try:
+        radarr_client.disable_error_messages()
         response = radarr_client.api_request("/system/status")
         if response:
             status = succ
@@ -59,6 +60,7 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
      if radarr_client.has4k():
         status = fail
         try:
+            radarr_client.disable_error_messages()
             response = radarr_client.api_request("/system/status", request_4k=True)
             if response:
                 status = succ
