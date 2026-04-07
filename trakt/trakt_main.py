@@ -47,9 +47,7 @@ def trakt_main_menu(addon_handle):
     xbmcplugin.endOfDirectory(addon_handle)
 
 def handle_trakt(trakt_mode, args, addon_handle, addon_data_path, page=1):
-    client_id = "033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9"
-    client_secret = "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0"
-    trakt_client = TraktClient(client_id, client_secret, addon_data_path)
+    trakt_client = TraktClient(addon_data_path)
     if trakt_mode == "recommended_shows":
         show_recommended_shows(trakt_client, addon_handle)
     elif trakt_mode == "recommended_movies":

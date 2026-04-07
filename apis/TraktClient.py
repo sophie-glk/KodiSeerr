@@ -7,7 +7,8 @@ import time
 
 class TraktClient:
     BASE_URL = "https://api.trakt.tv"
-    def __init__(self, client_id: str, client_secret: str, addon_data_path: str):
+    def __init__(self,addon_data_path: str, client_id = "033d0d37baa639a6e3a8e650184f05f04f391aa5b0482c91de44bd98d2518ed9",
+    client_secret = "878ed8892926cee292e028d09b9fc4b00695af77fd47489b55518683a2c133e0"):
         self.addon_data_path = addon_data_path
         self.ID = "24aabe81-9074-4813-81bb-31dbec750d7d"
         self.client_id = client_id
