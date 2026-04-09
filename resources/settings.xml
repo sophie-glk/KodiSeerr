@@ -28,6 +28,10 @@
     <category label="Trakt">
      <setting id="trakt_auth" type="action" label="Authenticate" action="RunScript(plugin.video.seerr4kodi,trakt_login)" />
     </category>
+    <category label="ntfy.sh">
+     <setting id="ntfy_url" type="text" label="ntfy.sh server url" default="https://ntfy.sh" />
+     <setting id="ntfy_topic" type="text" label="ntfy.sh topic" default="" />
+     </category>
     <category label="Requests">
         <setting id="enable_ask_4k" type="bool" label="Enable asking for 4K" default="false" />
         <setting id="show_quality_profiles" type="bool" label="Show quality profile selection" default="true" />
