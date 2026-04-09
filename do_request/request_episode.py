@@ -72,14 +72,19 @@ def request_episode(id, title, season, episode_number, sonarr_client, jellyseerr
        return
       
       if quality_profile:  
-        try:
-            series_data["qualityProfileId"] = quality_profile
-            sonarr_client.api_request(f"/series/{series_id}", method="PUT", data=series_data, request_4k = is4k)
-            xbmc.sleep(1000) # wait for sonarr to update
-        except:
-            return
+        series_data["qualityProfileId"] = quality_profile
+    
       ### send request
+
       try:
+          season_data = series_data.get("seasons")
+          for s in season_data:
+              if s.get("seasonNumber") == season:
+                 ### set monitored setting
+                 s["monitored"] = True
+                 break
+          sonarr_client.api_request(f"/series/{series_id}", method="PUT", data=series_data, request_4k = is4k)   
+          xbmc.sleep(1000)  # wait for sonarr to update
           sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": [episode_id] }, request_4k = is4k)
       except:
           return
