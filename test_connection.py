@@ -17,7 +17,8 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
             status = succ
     except Exception:
         pass
-    results += (status + "Seerr \n")
+    results +=  "Seerr"
+    results += status + "\n"
 
     # Sonarr (SD)
     if settings.enable_sonarr():
@@ -30,7 +31,8 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
             status = succ
      except Exception:
         pass
-     results += (status + "Sonarr \n")
+     results +=  "Sonarr"
+     results += status + "\n"
 
     # Sonarr (4K)
      if sonarr_client.has4k():
@@ -42,7 +44,8 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
                 status = succ
         except Exception:
             pass
-        results += (status + "Sonarr 4K \n")
+        results +=  "Sonarr (4k)"
+        results += status + "\n"
 
     # Radarr (SD)
     if settings.enable_radarr():
@@ -54,7 +57,8 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
             status = succ
      except Exception:
         pass
-     results += (status + "Radarr \n")
+     results +=  "Radarr"
+     results += status + "\n"
 
      # Radarr (4K)
      if radarr_client.has4k():
@@ -66,6 +70,7 @@ def test_connection(jellyseerr_client, sonarr_client, radarr_client, settings, a
                 status = succ
         except Exception:
             pass
-        results += (status + "Radarr 4K \n")
+        results +=  "Radarr (4k)"
+        results += status + "\n"
 
     xbmcgui.Dialog().textviewer("Connection Test Results", results)
