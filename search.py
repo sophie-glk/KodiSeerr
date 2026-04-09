@@ -10,12 +10,16 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
     if not search_string and not external_keyboard:
        search_string = xbmcgui.Dialog().input('Search for Movie or TV Show')
     if search_string:
+        pDialog = xbmcgui.DialogProgressBG()
+        pDialog.create("Search", "Fetching Results")
         xbmcplugin.setContent(addon_handle, 'videos')
         try:
             data = jellyseer_client.api_request('/search', params={'query': search_string, "page": page})
         except:
             xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+            pDialog.close()
             return
+        pDialog.update(50)
         results = data.get('results', []) if data else []
         total_pages = data.get("totalPages", 1)
         for item in results:
@@ -29,11 +33,13 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
             full_title = f"{title} ({year}) {type_label}" if year else f"{title} {type_label}"
             
             if settings.show_request_status():
+              try:
                 status = get_media_status(media_type, item.get('id'), jellyseer_client)
                 status_label = get_status_label(status)
                 if status_label:
                     full_title += f" {status_label}"
-            
+              except:
+                    pass
             context_menu = []
             context_menu.append(('Show Details', f'RunPlugin({build_url({"mode": "show_details", "type": media_type, "id": item.get("id")})})'))
             context_menu.append(('Add to Favorites', f'RunPlugin({build_url({"mode": "add_favorite", "type": media_type, "id": item.get("id")})})'))
@@ -52,6 +58,7 @@ def search(search_string, jellyseer_client, settings, addon_handle, page = 1, ex
         xbmcplugin.addSortMethod(addon_handle, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
         add_next_page_button({"mode": "search", "query": search_string}, page, total_pages, addon_handle)
         xbmcplugin.endOfDirectory(addon_handle, cacheToDisc=False)
+        pDialog.close()
     else:
         handle_empty_directory(addon_handle)
  
