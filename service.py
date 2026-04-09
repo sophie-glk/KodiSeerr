@@ -3,6 +3,7 @@ import xbmc
 import xbmcaddon
 import json
 from utils.logging import notify_error, notify_info
+import urllib.parse
 addon = xbmcaddon.Addon()
 monitor = xbmc.Monitor()
 
@@ -17,7 +18,7 @@ def main_loop():
             break
          continue
       try:
-        resp = requests.get(f"{hostname}/{topic}/json", stream=True)
+        resp = requests.get(f"{hostname}/{urllib.parse.urlencode(topic)}/json", stream=True)
         resp.raise_for_status()
         for line in resp.iter_lines():
             notif = json.loads(line)
