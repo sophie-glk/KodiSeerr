@@ -11,30 +11,31 @@ def do_request(media_type, id, settings, jellyseer_client, addon_handle, sonarr_
     if cancel:
         return
 
-    is4k = False
-    quality_profile = None
-    if settings.enable_ask_4k():
-        is4k = ask_4k(settings)
-
     confirm_before_request = settings.confirm_before_request()
     show_quality_profiles = settings.show_quality_profiles()
+    
+    seerr_type = "movie"
+    if media_type != "movie":
+        seerr_type = "tv"
+    try:
+        title_data = jellyseer_client.api_request(f"/{seerr_type}/{id}")
+    except:
+        return
+    title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
 
     if media_type == "episode":
         from do_request.request_episode import request_episode
-        request_episode(id, seasons_to_request[0], episode_number, is4k, sonarr_client, jellyseer_client, confirm_before_request, addon_handle, settings)
+        request_episode(id, title, seasons_to_request[0], episode_number, sonarr_client, jellyseer_client, addon_handle, settings)
         return
     
-    quality_profile = None
-    if show_quality_profiles:
-        quality_profile = ask_quality_profile(jellyseer_client, media_type, is4k)
+    is4k = False
+    if settings.enable_ask_4k():
+        is4k = ask_4k(settings, title)
 
+    if show_quality_profiles:
+        quality_profile = ask_quality_profile(jellyseer_client, media_type, is4k)    
+    
     if confirm_before_request:
-        title_data = None
-        try:
-            title_data = jellyseer_client.api_request(f"/{media_type}/{id}")
-        except:
-            pass
-        title = title_data.get('title') or title_data.get('name', 'this content') if title_data else 'this content'
         msg = f"Request {title} {confirm_string}"
         if is4k:
             msg += " in 4K"
@@ -72,13 +73,13 @@ def ask_quality_profile(jellyseer_client, media_type, is4k):
                 return profiles[selected].get("id")
         return None
 
-def ask_4k(settings):
+def ask_4k(settings, title):
         is4k = False
         prefs = settings.get_preferences("last_quality")
         if settings.remember_last_quality() and 'last_4k_choice' in prefs:
             is4k = prefs['last_4k_choice']
         else:
-            is4k = xbmcgui.Dialog().yesno('KodiSeerr', 'Request in 4K quality?')
+            is4k = xbmcgui.Dialog().yesno('KodiSeerr', f'Request {title} in 4K quality?')
         if settings.remember_last_quality():
             settings.save_preferences("last_quality", prefs)
         return is4k

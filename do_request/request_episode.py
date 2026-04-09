@@ -1,8 +1,25 @@
 
+from do_request.request_main import ask_4k, ask_quality_profile
 import xbmcgui
 import xbmc
 import xbmcplugin
-def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_client, confirm_before_request, addon_handle, settings):
+def request_episode(id, title, season, episode_number, sonarr_client, jellyseerr_client, addon_handle, settings):
+      is4k = False
+      if settings.enable_ask_4k() and sonarr_client.has4k():
+        is4k = ask_4k(settings, f"{title} S{season}E{episode_number}")
+      quality_profile = None
+      if settings.show_quality_profiles():
+        quality_profile = ask_quality_profile(jellyseerr_client, "tv", is4k)
+
+      if settings.confirm_before_request():
+        msg = f"Request {title} (S{season}E{episode_number})"
+        if is4k:
+            msg += " in 4K"
+        msg += "?"
+        if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
+            xbmcplugin.endOfDirectory(addon_handle, succeeded=False, cacheToDisc=False) 
+            return
+
       try:      
         series_data = sonarr_client.api_request(f"/series/lookup?term=tmdb:{id}", request_4k = is4k)[0]
       except:
@@ -10,7 +27,6 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
       #if the show is missing we have to add it.
       series_id = series_data.get("id")
       if series_id == None:
-            title = series_data.get("title")
             seerr_sonarr_settings = {}
             try:
                 instances = jellyseerr_client.api_request("/settings/sonarr")
@@ -32,41 +48,39 @@ def request_episode(id, season, episode_number, is4k, sonarr_client, jellyseerr_
             series_data["seasonFolder"] = seerr_sonarr_settings.get("enableSeasonFolders")
             #series_data["addOptions"] = {"searchForMissingEpisodes": True}
             try:
-                response = sonarr_client.api_request("/series", method="POST", data=series_data, request_4k = is4k)
+                series_data = sonarr_client.api_request("/series", method="POST", data=series_data, request_4k = is4k)
             except:
                 return
-            series_id = response.get("id")
+            series_id = series_data.get("id")
             xbmc.sleep(1000) # wait for sonarr to add the show
       try:
-          episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = is4k)
+          episodes = sonarr_client.api_request(f"/episode", params={"seriesId": series_id}, request_4k = is4k,  use_cache=False)
       except:
           return
       if not episodes:
           from utils.logging import notify_error
           notify_error("Request Failed")
           return
-      episode_id =[]
-      episode_title = ""
+      episode_id = None
       for ep in episodes:
           if int(ep.get("seasonNumber")) == int(season) and int(ep.get("episodeNumber")) == int(episode_number):
-            episode_id = [ep.get("id")]
-            episode_title = ep.get("title")
+            episode_id = ep.get("id")
+
       if not episode_id:
        from utils.logging import notify_error
        notify_error("Episode not found")
        return
-
-      if confirm_before_request:
-        title = series_data.get("title")
-        msg = f"Request {title}: {episode_title} (S{season}E{episode_number})"
-        if is4k:
-            msg += " in 4K"
-        msg += "?"
-        if not xbmcgui.Dialog().yesno('KodiSeerr', msg):
-            xbmcplugin.endOfDirectory(addon_handle, succeeded=False) 
+      
+      if quality_profile:  
+        try:
+            series_data["qualityProfileId"] = quality_profile
+            sonarr_client.api_request(f"/series/{series_id}", method="PUT", data=series_data, request_4k = is4k)
+            xbmc.sleep(1000) # wait for sonarr to update
+        except:
             return
+      ### send request
       try:
-          sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": episode_id }, request_4k = is4k)
+          sonarr_client.api_request("/command", method="POST", data = {"name": "EpisodeSearch", "episodeIds": [episode_id] }, request_4k = is4k)
       except:
           return
       from utils.logging import notify_info
