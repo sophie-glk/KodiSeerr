@@ -6,6 +6,7 @@ class RadarrClient(ApiClient):
        if server_url_4k is not None:
            server_url_4k = f"{server_url_4k}/api/v3"
        super().__init__(f"{server_url}/api/v3", api_token, has_4k, server_url_4k, api_token_4k, allow_self_signed)
+       self.name = "radarr"
 
     def _handle_status_code(self, status_code):
      if status_code in [200, 201, 202, 204]:

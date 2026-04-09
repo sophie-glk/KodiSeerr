@@ -3,7 +3,7 @@ prefix  = f"[{name}]"
 def log_error(message):
     import xbmc
     global prefix
-    xbmc.log(f"{prefix} Trakt: {message}", level=xbmc.LOGERROR)
+    xbmc.log(f"{prefix}: {message}", level=xbmc.LOGERROR)
 
 def notify_error(message, heading = ""):
       import xbmcgui

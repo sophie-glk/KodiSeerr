@@ -7,7 +7,7 @@ from urllib.parse import urlencode, quote
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None, allow_self_signed = False):
+    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None, allow_self_signed = False, name = ""):
         self.allow_self_signed = allow_self_signed
         self._disable_error_messages = False
         self.endpoint_url = endpoint_url
