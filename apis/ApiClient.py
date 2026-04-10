@@ -1,4 +1,5 @@
 import requests
+from utils.logging import log_error
 import xbmcaddon
 import xbmc
 import xbmcgui
@@ -7,18 +8,19 @@ from urllib.parse import urlencode, quote
 from cache import *
 
 class ApiClient:
-    def __init__(self, endpoint_url, api_token, has4k=False, endpoint_url_4k=None, api_token_4k=None, allow_self_signed = False, name = ""):
+    def __init__(self, endpoint_url, api_token = None, has4k=False, endpoint_url_4k=None, api_token_4k=None, allow_self_signed = False, name = ""):
+
         self.allow_self_signed = allow_self_signed
         self._disable_error_messages = False
         self.endpoint_url = endpoint_url
         self.api_token = api_token
         self.session = None
-        self.name = ""
+        self.name = name
         self.__has4k = has4k
         self.endpoint_url_4k = endpoint_url_4k
         self.api_token_4k = api_token_4k
         self.init_session()
-
+     
     def init_session(self):
         self.session = requests.Session()
         self.session.verify = not self.allow_self_signed
@@ -51,15 +53,19 @@ class ApiClient:
 
         cache_key = None
         if use_cache:
-            cache_key = str(url + method + data_json + token)
+            cache_key = str(url + method + data_json + self.name)
             cached = get_cached(cache_key)
             if cached is not None:
                 return cached
-
-        headers = {
+        if token:
+            headers = {
             "Accept": "application/json",
             "X-Api-Key": token,
-        }
+            }
+        else:
+            headers = {
+            "Accept": "application/json"
+            }
         if method in ("POST", "PUT"):
             headers["Content-Type"] = "application/json"
 

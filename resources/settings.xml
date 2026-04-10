@@ -4,8 +4,14 @@
           <setting id="items_per_page" type="number" label="Items per page" default="25" />
  </category>
     <category label="Seerr">
-        <setting id="jellyseerr_url" type="text" label="Server URL" default="http://localhost:5055" />
-        <setting id="jellyseerr_api_token" type="text" label="API Token" default="" />
+        <setting id="seerr_url" type="text" label="Server URL" default="http://localhost:5055" />
+        <setting id="seerr_auth_method" type="select" label="Seerr Auth Method" values="API-Key|Plex|Jellyfin|Seerr" />
+        <setting id="seerr_api_token" type="text" label="API Token" default="" visible="eq(-1,0)" />
+        <setting id="seerr_plex_token" type="text" label="Plex Token" default="" visible="eq(-2,1)" />
+        <setting id="seerr_jellyfin_username" type="text" label="Jellyfin Username" default="" visible="eq(-3,2)" />
+        <setting id="seerr_jellyfin_password" type="text" label="Jellyfin Password" default="" visible="eq(-4,2)" />
+        <setting id="seerr_local_email" type="text" label="Seerr E-mail" default="" visible="eq(-5,3)" />
+        <setting id="seerr_local_password" type="text" label="Seerr Password" default="" visible="eq(-6,3)" />
     </category>
     <category label="Radarr">
         <setting id="radarr_populate" type="action" label="Populate using Seerr" action="RunScript(plugin.video.seerr4kodi,populate_radarr_settings)" />

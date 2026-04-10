@@ -7,7 +7,6 @@ import urllib.parse
 addon = xbmcaddon.Addon()
 monitor = xbmc.Monitor()
 
-
 def main_loop():
     while not monitor.abortRequested():
       hostname = addon.getSetting('ntfy_url')

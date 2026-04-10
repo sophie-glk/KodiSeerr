@@ -1,4 +1,5 @@
 import sys
+from apis.create_seerr_client import create_seerr_client
 from cache import load_cache, save_cache, clean_cache, set_cache_duration, set_caching_disabled
 from Settings import Settings
 from utils.url_handling import set_base_url
@@ -27,7 +28,7 @@ if not settings.get_enable_cache():
     set_caching_disabled()
 
     ##uses settings
-jellyseer_client = create_client(JellyseerrClient)
+jellyseer_client = create_seerr_client()
 radarr_client = None
 sonarr_client = None
 enable_radarr = settings.enable_radarr()

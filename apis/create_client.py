@@ -3,7 +3,7 @@ from apis.jellyseerr_api import JellyseerrClient
 from apis.ApiClient import ApiClient
 
 
-def create_client(client=JellyseerrClient):
+def create_client(client):
     """Get the API client, creating a new one if settings have changed"""
     addon = xbmcaddon.Addon()
     url = addon.getSetting(f"{client.name}_url")
