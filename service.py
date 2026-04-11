@@ -17,7 +17,7 @@ def main_loop():
             break
          continue
       try:
-        resp = requests.get(f"{hostname}/{urllib.parse.urlencode(topic)}/json", stream=True)
+        resp = requests.get(f"{hostname}/{urllib.parse.quote(topic)}/json", stream=True)
         resp.raise_for_status()
         for line in resp.iter_lines():
             notif = json.loads(line)

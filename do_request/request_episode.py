@@ -31,8 +31,8 @@ def request_episode(id, title, season, episode_number, sonarr_client, jellyseerr
             try:
                 instances = jellyseerr_client.api_request("/settings/sonarr")
             except:
-                from utils.logging import notify_error
-                notify_error("Sonarr instance could not be found inside Seerr response")
+                from utils.logging import log_error
+                log_error("Sonarr instance could not be found inside Seerr response")
                 return
             for instance in instances:
                 if instance.get("is4k") == is4k and instance.get("isDefault"):

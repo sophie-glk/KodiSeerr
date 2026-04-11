@@ -1,3 +1,4 @@
+from apis.create_seerr_client import create_seerr_client
 import xbmcaddon
 addon = xbmcaddon.Addon()
 def trakt_login(addon_data_path):
@@ -32,8 +33,8 @@ def populate_radarr_settings(jellyseerr_client):
     try:
         instances = jellyseerr_client.api_request("/settings/radarr")
     except:
-        from utils.logging import notify_error
-        notify_error("Radarr instance could not be found inside Seerr response")
+        from utils.logging import log_error
+        log_error("Radarr instance could not be found inside Seerr response")
         return
     for instance in instances:
         is_default = instance.get("isDefault")
@@ -64,14 +65,10 @@ if __name__ == '__main__':
         import cache
         cache.clear_cache()
     elif mode == "populate_sonarr_settings":
-        from apis.create_client import create_client
-        from apis.jellyseerr_api import JellyseerrClient
-        jellyseerr_client = create_client(JellyseerrClient)
+        jellyseerr_client = create_seerr_client()
         populate_sonarr_settings(jellyseerr_client)
     elif mode == "populate_radarr_settings":
-        from apis.create_client import create_client
-        from apis.jellyseerr_api import JellyseerrClient
-        jellyseerr_client = create_client(JellyseerrClient)
+        jellyseerr_client = create_seerr_client()
         populate_radarr_settings(jellyseerr_client)
 
 
