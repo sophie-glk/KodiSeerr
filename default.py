@@ -79,12 +79,6 @@ elif mode == "cancel_request":
 elif mode == "jump_to_page":
     from utils.utils import jump_to_page
     jump_to_page(args)
-elif mode == "collections":
-    from list_collections import list_collections
-    list_collections(page, jellyseer_client, image_base, addon_handle)
-elif mode == "collection_details":
-    from list_collections import show_collection_details
-    show_collection_details(args.get('collection_id'), settings, jellyseer_client, addon_handle)
 elif mode == "recently_added":
     from list_recently_added import list_recently_added
     list_recently_added(page, jellyseer_client, addon_handle)

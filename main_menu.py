@@ -6,7 +6,6 @@ def main_menu(addon_handle):
     xbmcplugin.setContent(addon_handle, 'files')
     items = [
         ('recently_added', 'Recently Added', 'DefaultRecentlyAddedMovies.png', True),
-        ('collections', 'Collections', 'DefaultSets.png', True),
         (None, None, None, False),
         ('favorites', 'My Favorites', 'DefaultFavourites.png', True),
         ('requests', 'Request Progress', 'DefaultInProgressShows.png', True),
