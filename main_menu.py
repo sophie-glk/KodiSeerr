@@ -7,7 +7,6 @@ def main_menu(addon_handle):
     items = [
         ('recently_added', 'Recently Added', 'DefaultRecentlyAddedMovies.png', True),
         (None, None, None, False),
-        ('favorites', 'My Favorites', 'DefaultFavourites.png', True),
         ('requests', 'Request Progress', 'DefaultInProgressShows.png', True),
         ('statistics', 'Statistics', 'DefaultAddonInfoProvider.png', True),
         (None, None, None, False),

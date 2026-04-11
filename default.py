@@ -12,7 +12,6 @@ from apis.radarr_api import RadarrClient
 from apis.sonarr_api import SonarrClient
 image_base = "https://image.tmdb.org/t/p/w500"
 addon = xbmcaddon.Addon()
-favorites_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}/favorites.json")
 addon_data_path = xbmcvfs.translatePath(f"special://profile/addon_data/{addon.getAddonInfo('id')}")
 settings = Settings(addon_data_path , addon)
 addon_handle = int(sys.argv[1])
@@ -58,15 +57,6 @@ elif mode == "clear_cache":
 elif mode == "statistics":
     from statistics import show_statistics
     show_statistics(jellyseer_client, addon_handle)
-elif mode == "favorites":
-    from favorites import list_favorites
-    list_favorites(favorites_path, jellyseer_client, addon_handle)
-elif mode == "add_favorite":
-    from favorites import add_to_favorites
-    add_to_favorites(args.get('type'), args.get('id'), favorites_path)
-elif mode == "remove_favorite":
-    from favorites import remove_from_favorites
-    remove_from_favorites(args.get('type'), args.get('id'),  favorites_path)
 elif mode == "show_details":
     from show_details import show_details
     show_details(args.get('type'), args.get('id'), jellyseer_client)
